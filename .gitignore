@@ -1,6 +1,10 @@
 .idea
 .DS_Store
+__pycache__/
+*.pyc
+
 bidaf/data
 bidaf/__pycache__
-__pycache__/
-.pyc
+
+coqa-base/data
+coqa-base/wordvecs
