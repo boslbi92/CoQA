@@ -1,3 +1,0 @@
-[submodule "bidaf-keras"]
-	path = bidaf-keras
-	url = https://github.com/ParikhKadam/bidaf-keras.git
