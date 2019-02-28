@@ -3,7 +3,9 @@
 __pycache__/
 *.pyc
 
-bidaf/data
+bidaf/data/magnitude/*.magnitude
+bidaf/data/squad/*dev*
+bidaf/data/squad/*train*
 bidaf/__pycache__
 bidaf/saved_items
 
