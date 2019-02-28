@@ -5,6 +5,7 @@ __pycache__/
 
 bidaf/data
 bidaf/__pycache__
+bidaf/saved_items
 
 coqa-base/data
 coqa-base/wordvecs
