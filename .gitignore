@@ -7,5 +7,6 @@ bidaf/data
 bidaf/__pycache__
 bidaf/saved_items
 
-coqa-base/data
-coqa-base/wordvecs
+coqa-base/data/*.json
+coqa-base/data/*.txt
+coqa-base/wordvecs/*.txt
