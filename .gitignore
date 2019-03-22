@@ -12,3 +12,5 @@ bidaf/saved_items
 coqa-base/data/*.json
 coqa-base/data/*.txt
 coqa-base/wordvecs/*.txt
+
+SDNet/coqa/*
