@@ -23,11 +23,11 @@ opt['cuda'] = torch.cuda.is_available()
 opt['confFile'] = conf_file
 opt['datadir'] = os.path.dirname(conf_file)  # conf_file specifies where the data folder is
 
-for key,val in cmdline_args.__dict__.items():
+for key, val in cmdline_args.__dict__.items():
     if val is not None and key not in ['command', 'conf_file']:
         opt[key] = val
 
-model = SDNetTrainer(opt)    
-    
+model = SDNetTrainer(opt)
+
 print('Select command: ' + command)
 model.train()

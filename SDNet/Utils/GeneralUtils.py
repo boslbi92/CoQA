@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import unicodedata
 import sys
 from torch.autograd import Variable
+from tqdm import tqdm
 nlp = spacy.load('en', parser = False)
 
 # normalize sentence
@@ -32,12 +33,7 @@ def load_glove_vocab(file, wv_dim, to_lower = True):
     print('Loading glove vocabulary from ' + file)
     lineCnt = 0
     with open(file, encoding = 'utf-8') as f:
-        for line in f:
-            # delete!!!
-            #if lineCnt == 20000:
-            #    print('delete!')
-            #    break
-
+        for line in tqdm(f, total=2196017):
             lineCnt = lineCnt + 1
             if lineCnt % 100000 == 0:
                 print('.', end = '',flush=True)
@@ -47,7 +43,7 @@ def load_glove_vocab(file, wv_dim, to_lower = True):
                 token = token.lower()
             glove_vocab.add(token) 
 
-    print('\n')
+    print('total lines : {} \n'.format(lineCnt))
     print('%d words loaded from Glove\n' % len(glove_vocab))
     return glove_vocab
 

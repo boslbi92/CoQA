@@ -22,6 +22,7 @@ from Models.Bert.tokenization import BertTokenizer
 from Utils.GeneralUtils import normalize_text, nlp
 from Utils.Constants import *
 from torch.autograd import Variable
+from tqdm import tqdm
 
 POS = {w: i for i, w in enumerate([''] + list(nlp.tagger.labels))}
 ENT = {w: i for i, w in enumerate([''] + nlp.entity.move_names)}
@@ -34,7 +35,7 @@ def build_embedding(embed_file, targ_vocab, wv_dim):
     w2id = {w: i for i, w in enumerate(targ_vocab)}
     lineCnt = 0
     with open(embed_file, encoding="utf8") as f:
-        for line in f:
+        for i, line in enumerate(tqdm(f)):
             lineCnt = lineCnt + 1
             if lineCnt % 100000 == 0:
                 print('.', end = '',flush=True)
