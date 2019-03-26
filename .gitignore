@@ -14,7 +14,7 @@ coqa-base/data/*.txt
 coqa-base/wordvecs/*.txt
 
 SDNet/coqa/data/*.json
-SDNet/coqa/glove/*.json
-SDNet/coqa/glove/*.txt
+SDNet/glove/*.json
+SDNet/glove/*.txt
 SDNet/coqa/bert-base-uncased/*.json
 SDNet/coqa/bert-base-uncased/*.bin
