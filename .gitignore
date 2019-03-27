@@ -18,3 +18,7 @@ SDNet/glove/*.json
 SDNet/glove/*.txt
 SDNet/coqa/bert-base-uncased/*.json
 SDNet/coqa/bert-base-uncased/*.bin
+SDNet/coqa/bert-large-uncased/*.bin
+SDNet/coqa/bert-large-uncased/*.bin
+SDNet/coqa/spacy/spacy_intermediate_feature/*
+
