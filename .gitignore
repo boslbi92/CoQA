@@ -22,3 +22,4 @@ SDNet/coqa/bert-large-uncased/*.bin
 SDNet/coqa/bert-large-uncased/*.bin
 SDNet/coqa/spacy/spacy_intermediate_feature/*
 
+HenNet/data/*
