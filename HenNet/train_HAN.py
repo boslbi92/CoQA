@@ -1,15 +1,23 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from HenNet.han import HAN, AttentionLayer
-from HenNet.utils import build_word2vec
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.optimizers import Adam
 from keras.utils import to_categorical
+from keras.callbacks import TensorBoard
 from nltk.tokenize import sent_tokenize
 from sklearn.model_selection import train_test_split
-import re, sys
+import re, sys, time
+
+try:
+    from HenNet.han import HAN, AttentionLayer
+    from HenNet.utils import build_word2vec
+except:
+    from han import HAN, AttentionLayer
+    from utils import build_word2vec
+
+tensorboard = TensorBoard(log_dir="train_logs/{}".format(time.time()))
 
 def process_toy_data():
     max_words_per_sent, max_sent = 50, 15
@@ -57,10 +65,8 @@ def process_toy_data():
               word_encoding_dim=100, sentence_encoding_dim=100)
     han.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
     han.summary()
-    han.fit(X_train, y_train, batch_size=10, epochs=50, validation_data=(X_test, y_test))
+    han.fit(X_train, y_train, batch_size=10, epochs=50, validation_data=(X_test, y_test), callbacks=[tensorboard])
     return
-
-
 
 
 process_toy_data()
