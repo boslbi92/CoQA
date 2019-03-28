@@ -25,7 +25,6 @@ class CoQAPreprocess():
         self.dev_file = os.path.join(opt['datadir'], opt['CoQA_DEV_FILE'])
 
         self.glove_file = os.path.join(opt['datadir'], opt['INIT_WORD_EMBEDDING_FILE'])
-        # self.glove_file = '/Users/jason/Documents/Research/Dataset/glove/glove.840B.300d.txt'
         self.glove_dim = 300
 
         self.official = 'OFFICIAL' in opt

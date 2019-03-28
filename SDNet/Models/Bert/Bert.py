@@ -33,7 +33,11 @@ class Bert(nn.Module):
             #self.bert_model = BertModel.from_pretrained('bert-base-cased')        
             self.bert_dim = 768
             self.bert_layer = 12
-        self.bert_model.cuda()
+
+        if torch.cuda.is_available():
+            self.bert_model.cuda()
+        else:
+            pass
         self.bert_model.eval()
 
         print('Finished loading')
