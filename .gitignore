@@ -24,6 +24,8 @@ SDNet/coqa/spacy/spacy_intermediate_feature/*
 SDNet/coqa/conf~/spacy_intermediate_feature~/*
 SDNet/coqa/runs/*
 
+deep-qa/*
+
 
 HenNet/data/*
 HenNet/train_logs/*
