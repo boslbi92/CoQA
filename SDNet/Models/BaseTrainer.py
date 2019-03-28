@@ -19,7 +19,7 @@ class BaseTrainer():
         self.use_spacy = 'SPACY_FEATURE' in self.opt
         self.opt['logFile'] = 'log.txt'
 
-        opt['FEATURE_FOLDER'] = 'conf~/' + ('spacy_intermediate_feature~/' if self.use_spacy else 'intermediate_feature~/')
+        opt['FEATURE_FOLDER'] = 'spacy/' + ('spacy_intermediate_feature/' if self.use_spacy else 'intermediate_feature/')
         opt['FEATURE_FOLDER'] = os.path.join(opt['datadir'], opt['FEATURE_FOLDER'])
 
     def log(self, s):
@@ -34,7 +34,7 @@ class BaseTrainer():
     def getSaveFolder(self):
         runid = 1
         while True:
-            saveFolder = os.path.join(self.opt['datadir'], 'conf~', 'run_' + str(runid))
+            saveFolder = os.path.join(self.opt['datadir'], 'runs', 'run_' + str(runid))
             if not os.path.exists(saveFolder):
                 self.saveFolder = saveFolder
                 os.makedirs(self.saveFolder)

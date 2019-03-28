@@ -13,7 +13,7 @@ coqa-base/data/*.json
 coqa-base/data/*.txt
 coqa-base/wordvecs/*.txt
 
-SDNet/coqa/data/*.json
+SDNet/coqa/data/*
 SDNet/glove/*.json
 SDNet/glove/*.txt
 SDNet/coqa/bert-base-uncased/*.json
@@ -22,6 +22,8 @@ SDNet/coqa/bert-large-uncased/*.bin
 SDNet/coqa/bert-large-uncased/*.json
 SDNet/coqa/spacy/spacy_intermediate_feature/*
 SDNet/coqa/conf~/spacy_intermediate_feature~/*
+SDNet/coqa/runs/*
+
 
 HenNet/data/*
 HenNet/train_logs/*

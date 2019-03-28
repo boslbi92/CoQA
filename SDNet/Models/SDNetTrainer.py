@@ -32,6 +32,7 @@ class SDNetTrainer(BaseTrainer):
         self.preproc = CoQAPreprocess(self.opt)
         if self.use_cuda:
             torch.cuda.manual_seed_all(self.seed)
+        self.running_loss = 0.0
 
     def official(self, model_path, test_data):
         print('-----------------------------------------------')
@@ -70,7 +71,7 @@ class SDNetTrainer(BaseTrainer):
             self.load_model(model_path)            
 
         print('Loading train json...')
-        with open(os.path.join(self.opt['FEATURE_FOLDER'], self.data_prefix + 'train-preprocessed.json'), 'r') as f:
+        with open(os.path.join(self.opt['FEATURE_FOLDER'], self.data_prefix + 'dev-preprocessed.json'), 'r') as f:
             train_data = json.load(f)
 
         print('Loading dev json...')
@@ -124,10 +125,8 @@ class SDNetTrainer(BaseTrainer):
                     self.log("Results breakdown\n{0}".format(result))
                 
                 self.update(batch)
-                if i % 100 == 0:
-                    self.log('updates[{0:6}] train loss[{1:.5f}] remaining[{2}]'.format(
-                        self.updates, self.train_loss.avg,
-                        str((datetime.now() - startTime) / (i + 1) * (len(train_batches) - i - 1)).split('.')[0]))
+                if i % 20 == 0:
+                    self.log('updates[{0:6}] train loss[{1:.5f}] remaining[{2}]'.format(self.updates, self.train_loss.avg, str((datetime.now() - startTime) / (i + 1) * (len(train_batches) - i - 1)).split('.')[0]))
 
             print("PROGRESS: {0:.2f}%".format(100.0 * (epoch + 1) / numEpochs))
             print('Config file is at ' + self.opt['confFile'])
@@ -179,11 +178,13 @@ class SDNetTrainer(BaseTrainer):
             if ground_truth[i][0] != -1 and ground_truth[i][1] != -1: # normal span
                 targets.append(ground_truth[i][0] * context_len + ground_truth[i][1])
 
-        targets = torch.LongTensor(np.array(targets))
+        targets = torch.LongTensor(targets)
         if self.use_cuda:
             targets = targets.cuda()
+
         loss = self.loss_func(scores, targets)
-        self.train_loss.update(loss.data[0], 1)
+        self.train_loss.update(loss.item(), 1)
+
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm(self.network.parameters(), self.opt['grad_clipping'])
