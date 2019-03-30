@@ -11,7 +11,7 @@ from model.metrics.custom_metrics import monitor_span, negative_log_span
 from keras.callbacks import TensorBoard, ModelCheckpoint
 import os, time
 
-class BiDAF():
+class HenNet():
     def __init__(self):
         self.embedding_dim = 300
         self.num_passage_words = 1200
@@ -85,15 +85,15 @@ class BiDAF():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        bidaf = Model(inputs=[question_input, passage_input], outputs=[prob_output])
-        bidaf.compile(optimizer='adadelta', loss=negative_log_span)
+        henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
+        henNet.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
-        bidaf.summary(line_length=175)
-        bidaf.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
+        henNet.summary(line_length=175)
+        henNet.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
                   shuffle=True, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
 
     def _get_custom_objects(self):
-        custom_objects = super(BiDAF, self)._get_custom_objects()
+        custom_objects = super(HenNet, self)._get_custom_objects()
         custom_objects["ComplexConcat"] = ComplexConcat
         custom_objects["MaskedSoftmax"] = MaskedSoftmax
         custom_objects["MatrixAttention"] = MatrixAttention
