@@ -2,20 +2,24 @@ from model.model_bidaf import BiDAF
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 from keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
 import numpy as np
 import os, json
 
-def prepare_toy_data():
-    path = '/Users/jason/Documents/Research/Thesis/CoQA/HenNet/data/coqa-dev-preprocessed.json'
+def prepare_toy_data(num_conv=5):
+    path = os.getcwd() + '/data/coqa-dev-preprocessed.json'
     with open(path) as f:
         data = json.load(f)
 
     # load word2vec
-    w2v = KeyedVectors.load_word2vec_format(fname='/Users/jason/Documents/Research/Dataset/Word2Vec.bin', binary=True, limit=50000)
-    for i, x in enumerate(data['data']):
-        context, questions, answers = None, [], []
+    # w2v_path = '/Users/jason/Documents/Research/Dataset/Word2Vec.bin'
+    w2v_path = '/media/Ubuntu/Research/Thesis/data/Word2Vec.bin'
+    w2v = KeyedVectors.load_word2vec_format(fname=w2v_path, binary=True, limit=500000)
 
-        if i == 5: break
+    train_context, train_question, train_begin, train_end = [], [], [], []
+    for i, x in enumerate(data['data']):
+        context, questions, answers, answers_span = None, [], [], []
+        if i == num_conv: break
 
         for k, v in x['annotated_context'].items():
             if k == 'word':
@@ -24,6 +28,7 @@ def prepare_toy_data():
             q, a = history['annotated_question'], history['annotated_answer']
             questions.append(q['word'])
             answers.append(a['word'])
+            answers_span.append(history['answer_span'])
 
         # convert to vectors
         if len(context) >= 500:
@@ -51,46 +56,24 @@ def prepare_toy_data():
                     continue
             questions[index] = q
 
-
-        # for index in range(len(answers)):
-        #     a = answers[index]
-        #     if len(a) >= 20:
-        #         a = a[0:20]
-        #     else:
-        #         a = a + (['_PAD_']*(20-len(a)))
-        #     for i in range(len(a)):
-        #         try:
-        #             a[i] = w2v[a[i]]
-        #         except:
-        #             a[i] = np.zeros(300)
-        #             continue
-        #     answers[index] = a
-
-        train_context, train_question, test = [], [], []
-        context, questions, answers = np.array(context), np.array(questions), np.array(answers)
-        for q, a in zip(questions, answers):
+        context, questions, answers_text, answers_span = np.array(context), np.array(questions), np.array(answers), np.array(answers_span)
+        for q, a in zip(questions, answers_span):
             train_context.append(context)
             train_question.append(q)
-            test.append(' '.join(a))
-
-    return (np.array(train_context), np.array(train_question), np.array(test))
+            true_begin, true_end = a[0], a[1]
+            initial_begin, initial_end = np.zeros(shape=(500,)), np.zeros(shape=(500,))
+            initial_begin[true_begin] = 1.0
+            initial_end[true_end] = 1.0
+            train_begin.append(initial_begin)
+            train_end.append(initial_end)
+    return (np.array(train_context), np.array(train_question), np.array(train_begin), np.array(train_end))
 
 def main():
-    context_in, history_in, test = prepare_toy_data()
-
-    context_dim = context_in.shape
-    rand_test = np.random.rand(context_dim[0], context_dim[1], 2)
-    span_start, span_end = rand_test[:, :, 0], rand_test[:, :, 1]
+    context_in, history_in, train_begin, train_end = prepare_toy_data(num_conv=100)
+    probs = np.stack([train_begin, train_end], axis=1)
 
     bidaf = BiDAF()
-
-    # test span
-    span_begin_probs = np.array([0.1, 0.3, 0.05, 0.3, 0.25])
-    span_end_probs = np.array([0.5, 0.1, 0.2, 0.05, 0.15])
-    best_span = bidaf.get_best_span(span_start[0], span_end[0])
-    print (best_span)
-
-    bidaf.build_model(context_input=context_in, history_input=history_in, span_start_out=span_start, span_end_out=span_end, epochs=1)
+    bidaf.build_model(context_input=context_in, history_input=history_in, output=probs, epochs=3)
     return
 
 main()

@@ -1,10 +1,12 @@
 import numpy as np
 from overrides import overrides
+from keras import backend as K
 from keras import Model, optimizers
-from keras.layers import Input, Embedding, Dense, Concatenate, TimeDistributed
+from keras.layers import Input, Embedding, Dense, Concatenate, TimeDistributed, Reshape
 from keras.layers import LSTM, GRU, Bidirectional, Dropout
 from model.layers.attention import MatrixAttention, WeightedSum, MaskedSoftmax
-from model.layers.backend import Max, Repeat, RepeatLike
+from model.layers.backend import Max, Repeat, RepeatLike, StackProbs
+from model.metrics.custom_metrics import monitor_span, negative_log_span
 # from HenNet.model.layers import Highway
 import os, time
 
@@ -16,10 +18,9 @@ class BiDAF():
         self.num_passage_words = 500
         self.num_question_words = 20
         self.num_highway_layers = 2
-        self.embedding_matrix = np.zeros(shape=(30000, 300))
         self.highway_activation = 'relu'
 
-    def build_model(self, context_input, history_input, span_start_out, span_end_out, epochs=5):
+    def build_model(self, context_input, history_input, output, epochs=5):
         # PART 1: First we create input layers
         question_input = Input(shape=(self.num_question_words, self.embedding_dim), dtype='float32', name="question_input")
         passage_input = Input(shape=(self.num_passage_words, self.embedding_dim), dtype='float32', name="passage_input")
@@ -78,14 +79,16 @@ class BiDAF():
         span_end_weights = TimeDistributed(Dense(units=1), name='span_end_weights')(span_end_input)
         span_end_probabilities = MaskedSoftmax(name="span_end_probs")(span_end_weights)
 
-        bidaf = Model(inputs=[question_input, passage_input], outputs=[span_begin_probabilities, span_end_probabilities])
-        bidaf.compile(optimizer='adam', loss='categorical_crossentropy')
+        prob_output = StackProbs()([span_begin_probabilities, span_end_probabilities])
 
+        bidaf = Model(inputs=[question_input, passage_input], outputs=[prob_output])
+        bidaf.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
         bidaf.summary(line_length=175)
-        bidaf.fit(x=[history_input, context_input], y=[span_start_out, span_end_out], epochs=epochs, batch_size=2)
+        bidaf.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
+                  shuffle=True, validation_split=0.2, callbacks=[monitor_span()])
 
-    def _get_custom_objects(cls):
+    def _get_custom_objects(self, cls):
         custom_objects = super(BidirectionalAttentionFlow, cls)._get_custom_objects()
         custom_objects["ComplexConcat"] = ComplexConcat
         custom_objects["MaskedSoftmax"] = MaskedSoftmax
@@ -96,32 +99,3 @@ class BiDAF():
         custom_objects["WeightedSum"] = WeightedSum
         return custom_objects
 
-    @staticmethod
-    def get_best_span(span_begin_probs, span_end_probs):
-        if len(span_begin_probs.shape) > 2 or len(span_end_probs.shape) > 2:
-            raise ValueError("Input shapes must be (X,) or (1,X)")
-        if len(span_begin_probs.shape) == 2:
-            assert span_begin_probs.shape[0] == 1, "2D input must have an initial dimension of 1"
-            span_begin_probs = span_begin_probs.flatten()
-        if len(span_end_probs.shape) == 2:
-            assert span_end_probs.shape[0] == 1, "2D input must have an initial dimension of 1"
-            span_end_probs = span_end_probs.flatten()
-        max_span_probability = 0
-        best_word_span = (0, 1)
-        begin_span_argmax = 0
-        for j, _ in enumerate(span_begin_probs):
-            val1 = span_begin_probs[begin_span_argmax]
-            val2 = span_end_probs[j]
-
-            if val1 * val2 > max_span_probability:
-                best_word_span = (begin_span_argmax, j)
-                max_span_probability = val1 * val2
-
-            # We need to update best_span_argmax here _after_ we've checked the current span
-            # position, so that we don't allow things like (1, 1), which are empty spans.  We've
-            # added a special stop symbol to the end of the passage, so this still allows for all
-            # valid spans over the passage.
-            if val1 < span_begin_probs[j]:
-                val1 = span_begin_probs[j]
-                begin_span_argmax = j
-        return (best_word_span[0], best_word_span[1])
