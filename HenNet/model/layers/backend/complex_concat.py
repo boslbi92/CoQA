@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from keras import backend as K
 from overrides import overrides
-from .masked_layer import MaskedLayer
+from ..masked_layer import MaskedLayer
 
 class ComplexConcat(MaskedLayer):
     """
