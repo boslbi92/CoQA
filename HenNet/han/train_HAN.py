@@ -11,10 +11,12 @@ from sklearn.model_selection import train_test_split
 import re, sys, time
 
 try:
-    from HenNet.han import HAN, AttentionLayer
+    from HenNet.model_HenNet.han import HAN, AttentionLayer
+    from HenNet.model_HenNet.henNet import HenNet, AttentionLayer
     from HenNet.utils import build_word2vec
 except:
     from han import HAN, AttentionLayer
+    from henNet import HenNet, AttentionLayer
     from utils import build_word2vec
 
 tensorboard = TensorBoard(log_dir="train_logs/{}".format(time.time()))
@@ -23,7 +25,7 @@ def process_toy_data():
     max_words_per_sent, max_sent = 50, 15
     w2v_path = '/Users/jason/Documents/Research/Dataset/Word2Vec.bin'
     data_path = '/Users/jason/Documents/Research/Thesis/CoQA/HenNet/data/labeledTrainData.tsv'
-    movie_data = pd.read_csv(data_path, sep='\t', nrows=200)
+    movie_data = pd.read_csv(data_path, sep='\t', nrows=50)
 
     # preprocess
     raw_text = movie_data['review'].values
@@ -61,11 +63,11 @@ def process_toy_data():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
     # train HAN
-    han = HAN(max_words=max_words_per_sent, max_sentences=max_sent, output_size=2, embedding_matrix=embedding_matrix,
+    han = HenNet(max_words=max_words_per_sent, max_sentences=max_sent, output_size=2, embedding_matrix=embedding_matrix,
               word_encoding_dim=100, sentence_encoding_dim=100)
     han.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
     han.summary()
-    han.fit(X_train, y_train, batch_size=10, epochs=50, validation_data=(X_test, y_test), callbacks=[tensorboard])
+    # han.fit(X_train, y_train, batch_size=10, epochs=50, validation_data=(X_test, y_test), callbacks=[tensorboard])
     return
 
 

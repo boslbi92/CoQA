@@ -26,6 +26,6 @@ SDNet/coqa/runs/*
 
 deep-qa/*
 
-
 HenNet/data/*
+HenNet/embeddings/*
 HenNet/train_logs/*
