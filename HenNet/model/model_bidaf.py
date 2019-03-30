@@ -8,18 +8,19 @@ from keras.layers import LSTM, GRU, Bidirectional, Dropout
 from model.layers.attention import MatrixAttention, WeightedSum, MaskedSoftmax
 from model.layers.backend import Max, Repeat, RepeatLike, ComplexConcat, StackProbs
 from model.metrics.custom_metrics import monitor_span, negative_log_span
-from keras.callbacks import TensorBoard
+from keras.callbacks import TensorBoard, ModelCheckpoint
 import os, time
 
 class BiDAF():
     def __init__(self):
         self.embedding_dim = 300
-        self.vocab_size = 30000
-        self.num_passage_words = 500
-        self.num_question_words = 20
+        self.num_passage_words = 1200
+        self.num_question_words = 30
         self.dropout_rate = 0.2
         self.regularizer = l2(l=0.001)
         self.tensorboard = TensorBoard(log_dir='train_logs/{}'.format(time.time()))
+        self.model_dir = os.getcwd() + '/saved_models/{epoch:02d}-{val_loss:.3f}.hdf5'
+        self.checkpoint = ModelCheckpoint(self.model_dir, monitor='val_loss')
 
     def build_model(self, context_input, history_input, output, epochs=5):
         # PART 1: First we create input layers
@@ -31,7 +32,6 @@ class BiDAF():
         encoding_dim = int(self.embedding_dim/2)
         encoded_question = Bidirectional(GRU(encoding_dim, return_sequences=True, dropout=self.dropout_rate), name='question_encoder')(question_input)
         encoded_passage = Bidirectional(GRU(encoding_dim, return_sequences=True, dropout=self.dropout_rate), name='passage_encoder')(passage_input)
-
 
         # PART 3: Now we compute a similarity between the passage words and the question words
         # Shape: (batch_size, num_passage_words, num_question_words)
@@ -89,8 +89,8 @@ class BiDAF():
         bidaf.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
         bidaf.summary(line_length=175)
-        # bidaf.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
-        #           shuffle=True, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard])
+        bidaf.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
+                  shuffle=True, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
 
     def _get_custom_objects(self):
         custom_objects = super(BidirectionalAttentionFlow, self)._get_custom_objects()
@@ -101,5 +101,6 @@ class BiDAF():
         custom_objects["Repeat"] = Repeat
         custom_objects["RepeatLike"] = RepeatLike
         custom_objects["WeightedSum"] = WeightedSum
+        custom_objects["StackProbs"] = StackProbs
         return custom_objects
 

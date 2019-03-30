@@ -43,10 +43,13 @@ class monitor_span(Callback):
         pred_start, pred_end = pred[:,0,:], pred[:,1,:]
         val_start, val_end = self.validation_data[2][:,0,:], self.validation_data[2][:,1,:]
 
+        print ('-'*100, '\n')
+        print ('Prediction result')
         for ps, pe, ts, te in zip(pred_start, pred_end, val_start, val_end):
             original_span = (np.argmax(ts, axis=0), np.argmax(te, axis=0))
             log_start, log_end = np.log(ps[original_span[0]]), np.log(ps[original_span[1]])
             print(get_best_span(ps, pe), original_span, (log_start + log_end))
+        print ('-'*100, '\n')
         return
 
 def compute_loss(params):

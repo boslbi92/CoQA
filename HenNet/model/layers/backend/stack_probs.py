@@ -25,5 +25,6 @@ class StackProbs(MaskedLayer):
     @overrides
     def get_config(self):
         base_config = super(StackProbs, self).get_config()
+        config = {}
         config.update(base_config)
         return config
