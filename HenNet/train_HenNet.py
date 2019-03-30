@@ -12,7 +12,7 @@ def prepare_toy_data(num_conv=5, w2v_path='', w2v_limit=50000):
         data = json.load(f)
 
     # load word2vec
-    w2v_path = '/Users/jason/Documents/Research/Dataset/Word2Vec.bin'
+    # w2v_path = '/Users/jason/Documents/Research/Dataset/Word2Vec.bin'
     w2v = KeyedVectors.load_word2vec_format(fname=w2v_path, binary=True, limit=w2v_limit)
 
     train_context, train_question, train_begin, train_end = [], [], [], []
