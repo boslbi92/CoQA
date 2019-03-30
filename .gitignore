@@ -29,3 +29,4 @@ deep-qa/*
 HenNet/data/*
 HenNet/embeddings/*
 HenNet/train_logs/*
+HenNet/saved_models/*.hdf5
