@@ -6,14 +6,14 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import os, json, argparse
 
-def prepare_toy_data(num_conv=5, w2v_path=''):
+def prepare_toy_data(num_conv=5, w2v_path='', w2v_limit=50000):
     path = os.getcwd() + '/data/coqa-dev-preprocessed.json'
     with open(path) as f:
         data = json.load(f)
 
     # load word2vec
     w2v_path = '/Users/jason/Documents/Research/Dataset/Word2Vec.bin'
-    w2v = KeyedVectors.load_word2vec_format(fname=w2v_path, binary=True, limit=50000)
+    w2v = KeyedVectors.load_word2vec_format(fname=w2v_path, binary=True, limit=w2v_limit)
 
     train_context, train_question, train_begin, train_end = [], [], [], []
     max_context = 0
@@ -77,10 +77,11 @@ def main():
     embedding_path = os.getcwd() + '/embeddings/Word2Vec.bin'
     parser.add_argument("-n", help='number of convs to train', type=int, default=9999999)
     parser.add_argument("-p", help='path of Word2Vec bin', type=str, default=embedding_path)
+    parser.add_argument("-l", help='w2v limit', type=int, default=9999999)
     args = parser.parse_args()
 
     # trainer
-    context_in, history_in, train_begin, train_end = prepare_toy_data(num_conv=args.n, w2v_path=args.p)
+    context_in, history_in, train_begin, train_end = prepare_toy_data(num_conv=args.n, w2v_path=args.p, w2v_limit=args.l)
     probs = np.stack([train_begin, train_end], axis=1)
 
     bidaf = BiDAF()
