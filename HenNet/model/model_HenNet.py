@@ -19,7 +19,7 @@ class HenNet():
         self.dropout_rate = 0.2
         self.regularizer = l2(l=0.001)
         self.tensorboard = TensorBoard(log_dir='train_logs/{}'.format(time.time()))
-        self.model_dir = os.getcwd() + '/saved_models/{epoch:02d}-{val_loss:.3f}.hdf5'
+        self.model_dir = os.getcwd() + '/saved_models/HenNet-{epoch:02d}-{val_loss:.3f}.hdf5'
         self.checkpoint = ModelCheckpoint(self.model_dir, monitor='val_loss')
 
     def build_model(self, context_input, history_input, output, epochs=5):
