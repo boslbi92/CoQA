@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from gensim.models import KeyedVectors
+from bert_serving.client import BertClient
+from bert_serving.server import BertServer
+
 
 def build_word2vec(word_index, fname):
     print('Reading word2vec ...')
@@ -20,3 +23,20 @@ def build_word2vec(word_index, fname):
         except:
             continue
     return (embeddings_dict, embedding_matrix)
+
+# bert-serving-start -model_dir /Users/jason/Documents/Research/Dataset/embeddings/BERT-cased-large/ -num_worker=4 -pooling_strategy NONE
+def build_BERT_embeddings():
+    bc = BertClient()
+
+
+    texts = [['hey'], ['Hey'], ['I'], ['ate'], ['Mcdonalds'], ['mskeiwxcveftt'], [',']]
+    vectors = bc.encode(texts, is_tokenized=True, show_tokens=True)
+    return
+
+def terminate_BERT_server(port):
+    bs = BertServer()
+    bs.shutdown(port=port)
+
+build_BERT_embeddings()
+
+# terminate_BERT_server(port=555)
