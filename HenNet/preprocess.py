@@ -222,7 +222,11 @@ class CoQAPreprocessor():
         # span padding
         print ('Preparing for span input ...')
         spans = pad_sequences(test.T, maxlen=context_pad, dtype=float, value=0.0)
-        spans = np.reshape(spans, newshape=(spans.shape[0], spans.shape[2], spans.shape[1]))
+        reshaped_spans = []
+        for i in range(spans.shape[0]):
+            start, end = spans[i][:,0], spans[i][:,1]
+            reshaped_spans.append([start, end])
+        spans = np.array(reshaped_spans)
 
         # context padding
         print ('Preparing for context input ...')
@@ -275,6 +279,7 @@ class CoQAPreprocessor():
         for i in range(len(X)):
             expanded_dim[i, :] = X[i]
         return expanded_dim
+
 
     # def build_bert(self, lemma_id, e, lm, bert):
     #     for i in range(lemma_id.shape[0]):
