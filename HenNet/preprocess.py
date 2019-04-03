@@ -222,6 +222,7 @@ class CoQAPreprocessor():
         # span padding
         print ('Preparing for span input ...')
         spans = pad_sequences(test.T, maxlen=context_pad, dtype=float, value=0.0)
+        spans = np.reshape(spans, newshape=(spans.shape[0], spans.shape[2], spans.shape[1]))
 
         # context padding
         print ('Preparing for context input ...')
