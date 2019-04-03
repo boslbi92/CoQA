@@ -19,27 +19,35 @@ class CoQAPreprocessor():
         self.train_path = os.getcwd() + '/data/training/'
         self.visited = {}
 
-    def get_contextual_embeddings(self, words_tokenized):
+    def get_contextual_embeddings(self, sents, original_tokens):
         bc = BertClient()
-        encoding = bc.encode([words_tokenized], is_tokenized=True, show_tokens=True)
-        vectors, tokens = np.squeeze(encoding[0]), np.squeeze(np.array(encoding[1]))
-        en_dim = len(vectors)-1
-        vectors, tokens = vectors[1:en_dim], tokens[1:en_dim]
-        full_vectors = []
-        for i in range(len(tokens)):
-            if tokens[i] == '[UNK]':
-                original = words_tokenized[i]
-                if original in ['<Q-END>','<A-END>']:
-                    full_vectors.append(np.zeros(shape=(vectors.shape[1])))
+
+        full_vectors, full_tokens = [], []
+        for sent in sents:
+            encoding = bc.encode([sent], is_tokenized=True, show_tokens=True)
+            vectors, tokens = np.squeeze(encoding[0]), np.squeeze(np.array(encoding[1]))
+            en_dim = len(vectors)-1
+            vectors, tokens = vectors[1:en_dim], tokens[1:en_dim]
+            for i in range(len(tokens)):
+                if tokens[i] == '[UNK]':
+                    original = sent[i]
+                    if original in ['<Q-END>','<A-END>']:
+                        full_vectors.append(np.zeros(shape=(vectors.shape[1])))
+                        full_tokens.append(tokens[i])
+                    else:
+                        subword_encoding, subword_tokens = bc.encode([original], is_tokenized=False, show_tokens=True)
+                        sub_dim = len(subword_encoding[0])-1
+                        subword_encoding, subword_tokens = subword_encoding[0][1:sub_dim], subword_tokens[0][1:sub_dim]
+                        subword_vector = np.average(subword_encoding, axis=0)
+                        full_vectors.append(subword_vector)
+                        full_tokens.append(tokens[i])
                 else:
-                    subword_encoding, subword_tokens = bc.encode([original], is_tokenized=False, show_tokens=True)
-                    sub_dim = len(subword_encoding[0])-1
-                    subword_encoding, subword_tokens = subword_encoding[0][1:sub_dim], subword_tokens[0][1:sub_dim]
-                    subword_vector = np.average(subword_encoding, axis=0)
-                    full_vectors.append(subword_vector)
-            else:
-                full_vectors.append(vectors[i])
-        assert len(full_vectors) == len(vectors) == len(words_tokenized)
+                    full_vectors.append(vectors[i])
+                    full_tokens.append(tokens[i])
+            continue
+
+        # print (len(full_vectors), len(full_tokens), len(original_tokens))
+        assert len(full_vectors) == len(full_tokens) == len(original_tokens)
         return np.array(full_vectors)
 
     def add_to_labels(self, labels, type=None):
@@ -69,7 +77,7 @@ class CoQAPreprocessor():
         print ('c-nlp embedding dim: {}'.format(cnlp.shape))
         print ('history embedding dim: {}'.format(he.shape))
         print ('h-nlp embedding dim: {}'.format(hnlp.shape))
-        print ('span embedding dim: {}'.format(s.shape))
+        print ('span embedding dim: {}\n'.format(s.shape))
         return (ce, cnlp, he, hnlp, s)
 
     def save_processed_data(self, train_context, train_history, spans, stats, option, save):
@@ -104,11 +112,14 @@ class CoQAPreprocessor():
         # process each conversation
         time.sleep(0.5)
         for x in tqdm(j['data'], total=num_conv):
-            if count == conv_limit: break
+            if count == conv_limit:
+                break
+
             # context preprocessing
             original_context, annotated_context, context_id = x['context'], x['annotated_context'], x['id']
-            words, char_id, ent_id, pos_id = annotated_context['lemma'], annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
-            context_embedding = self.get_contextual_embeddings(words)
+            words, sents, char_id, ent_id, pos_id = annotated_context['lemma'], annotated_context['sentences'], annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
+            sents = self.extract_sentences(sents, words)
+            context_embedding = self.get_contextual_embeddings(sents, words)
             context_info = {'context_words': words, 'context_entity': ent_id, 'context_pos': pos_id, 'raw': original_context, 'id': context_id,
                             'num_words': len(words),'context_embedding': context_embedding}
 
@@ -189,7 +200,7 @@ class CoQAPreprocessor():
             history_info['raw'] += current_query['raw'] + ' <Q-END>'
             history_info['turn'] += [current_query['turn']] + ['<Q-END>']
             # history_info['h_char'] += current_query['q_char'] + [[-1]]
-            history_info['history_embedding'] = self.get_contextual_embeddings(history_info['h_words'])
+            history_info['history_embedding'] = self.get_contextual_embeddings([history_info['h_words']], history_info['h_words'])
 
             # compute max history words
             if len(history_info['h_words']) > self.history_len:
@@ -219,20 +230,12 @@ class CoQAPreprocessor():
             repeat_context.append(context[cid])
         context = pd.DataFrame(repeat_context)
 
-        # span padding
-        print ('Preparing for span input ...')
-        spans = pad_sequences(test.T, maxlen=context_pad, dtype=float, value=0.0)
-        reshaped_spans = []
-        for i in range(spans.shape[0]):
-            start, end = spans[i][:,0], spans[i][:,1]
-            reshaped_spans.append([start, end])
-        spans = np.array(reshaped_spans)
-
         # context padding
         print ('Preparing for context input ...')
         context_entity = pad_sequences(context['context_entity'].values, maxlen=context_pad, dtype=int, value=0)
         context_pos = pad_sequences(context['context_pos'].values, maxlen=context_pad, dtype=int, value=0)
         context_embedding = pad_sequences(context['context_embedding'].values.T, maxlen=context_pad, dtype=float, value=0.0)
+        context_words = pad_sequences(context['context_words'].values, maxlen=context_pad, dtype=object, value=['[UNK]'])
 
         # context_embedding = np.apply_along_axis(self.build_bert, axis=1, arr=context_lemma_id, e=embeddings, lm=lemma_map, bert=bert_matrix)
         context_entity = np.apply_along_axis(self.slice, axis=1, arr=context_entity)
@@ -250,6 +253,21 @@ class CoQAPreprocessor():
         h_pos = np.apply_along_axis(self.slice, axis=1, arr=h_pos)
         h_nlp_input = np.concatenate((h_entity, h_pos), axis=2)
 
+        # span padding
+        print ('Preparing for span input ...')
+        spans = pad_sequences(test.T, maxlen=context_pad, dtype=float, value=0.0)
+        reshaped_spans = []
+        with open(self.train_path + "spans.txt", 'w') as san:
+            for i in range(spans.shape[0]):
+                start, end = spans[i][:,0], spans[i][:,1]
+                start_index, end_idnex = np.argmax(start), np.argmax(end)
+                target = ' '.join(context_words[i][start_index:end_idnex+1])
+                san.write((target + '\n'))
+                reshaped_spans.append([start, end])
+            spans = np.array(reshaped_spans)
+            san.close()
+
+        time.sleep(1.0)
         if save:
             print('saving training data ...')
             data_path = self.train_path
@@ -263,9 +281,16 @@ class CoQAPreprocessor():
                 pickle.dump(h_nlp_input, f, protocol=4)
             with open(data_path + 'train-spans.pickle', 'wb') as f:
                 pickle.dump(spans, f, protocol=4)
+            time.sleep(1.0)
             print('saving completed')
 
         return
+
+    def extract_sentences(self, sentences, words):
+        sents = []
+        for start, end in sentences:
+            sents.append(words[start:end])
+        return sents
 
     def expand_spans(self, span, context_length, words, raw_answer):
         spans = np.zeros(shape=(context_length, 2))
@@ -279,22 +304,6 @@ class CoQAPreprocessor():
         for i in range(len(X)):
             expanded_dim[i, :] = X[i]
         return expanded_dim
-
-
-    # def build_bert(self, lemma_id, e, lm, bert):
-    #     for i in range(lemma_id.shape[0]):
-    #         wid = lemma_id[i]
-    #         if wid in self.visited:
-    #             continue
-    #         if wid == 0:
-    #             continue
-    #         else:
-    #             v = e[lm[wid]]
-    #             v_1, v_2, v_3, v_4 = v[0:1024], v[1024:2048], v[2048:3072], v[3072:4096]
-    #             v = (v_1 + v_2 + v_3 + v_4)
-    #             bert[wid] = v
-    #         self.visited[wid] = 'key'
-    #     return lemma_id
 
     def start_pipeline(self, conv_limit=5):
         self.process_CoQA(save=True, conv_limit=conv_limit)
