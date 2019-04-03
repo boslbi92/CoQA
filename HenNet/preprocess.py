@@ -290,8 +290,8 @@ class CoQAPreprocessor():
     #         self.visited[wid] = 'key'
     #     return lemma_id
 
-    def start_pipeline(self):
-        self.process_CoQA(save=True, conv_limit=5)
+    def start_pipeline(self, conv_limit=5):
+        self.process_CoQA(save=True, conv_limit=conv_limit)
         time.sleep(1.0)
         self.prepare_training_set(save=True)
         time.sleep(1.0)
