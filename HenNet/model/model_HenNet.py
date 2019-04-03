@@ -89,7 +89,7 @@ class HenNet():
         henNet.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
         henNet.summary(line_length=175)
-        henNet.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=2,
+        henNet.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=10,
                   shuffle=False, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
 
     def _get_custom_objects(self):
