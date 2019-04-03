@@ -89,7 +89,7 @@ class CoQAPreprocessor():
             print ('saving completed\n')
         return
 
-    def process_CoQA(self, option='dev', save=False):
+    def process_CoQA(self, option='dev', save=False, conv_limit=999999):
         # read data
         path = os.getcwd() + '/data/coqa-{}-preprocessed.json'.format(option)
         with open(path) as f:
@@ -104,7 +104,7 @@ class CoQAPreprocessor():
         # process each conversation
         time.sleep(0.5)
         for x in tqdm(j['data'], total=num_conv):
-            if count == 4: break
+            if count == conv_limit: break
             # context preprocessing
             original_context, annotated_context, context_id = x['context'], x['annotated_context'], x['id']
             words, char_id, ent_id, pos_id = annotated_context['lemma'], annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
@@ -158,7 +158,7 @@ class CoQAPreprocessor():
         self.save_processed_data(train_context, train_history, test, stats, option, save)
         return
 
-    def contextualize(self, context_id, queries, answers, window=1):
+    def contextualize(self, context_id, queries, answers, window=3):
         # contextual appending
         repeat_contexts, contextualized_samples, targets = [], [], []
 
@@ -275,24 +275,24 @@ class CoQAPreprocessor():
             expanded_dim[i, :] = X[i]
         return expanded_dim
 
-    def build_bert(self, lemma_id, e, lm, bert):
-        for i in range(lemma_id.shape[0]):
-            wid = lemma_id[i]
-            if wid in self.visited:
-                continue
-            if wid == 0:
-                continue
-            else:
-                v = e[lm[wid]]
-                v_1, v_2, v_3, v_4 = v[0:1024], v[1024:2048], v[2048:3072], v[3072:4096]
-                v = (v_1 + v_2 + v_3 + v_4)
-                bert[wid] = v
-            self.visited[wid] = 'key'
-        return lemma_id
+    # def build_bert(self, lemma_id, e, lm, bert):
+    #     for i in range(lemma_id.shape[0]):
+    #         wid = lemma_id[i]
+    #         if wid in self.visited:
+    #             continue
+    #         if wid == 0:
+    #             continue
+    #         else:
+    #             v = e[lm[wid]]
+    #             v_1, v_2, v_3, v_4 = v[0:1024], v[1024:2048], v[2048:3072], v[3072:4096]
+    #             v = (v_1 + v_2 + v_3 + v_4)
+    #             bert[wid] = v
+    #         self.visited[wid] = 'key'
+    #     return lemma_id
 
-# preprocessor = CoQAPreprocessor()
-# preprocessor.process_CoQA(save=True)
-# time.sleep(1.0)
-# preprocessor.prepare_training_set(save=True)
-# time.sleep(1.0)
-# preprocessor.load_training_data()
+    def start_pipeline(self):
+        self.process_CoQA(save=True, conv_limit=5)
+        time.sleep(1.0)
+        self.prepare_training_set(save=True)
+        time.sleep(1.0)
+        return self.load_training_data()

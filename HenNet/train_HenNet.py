@@ -9,12 +9,10 @@ import os, json, argparse, pickle
 
 def main():
     prep = CoQAPreprocessor()
-
-    # trainer
-    ce, cnlp, he, hnlp, s = prep.load_training_data()
+    ce, cnlp, he, hnlp, s = prep.start_pipeline()
 
     hn = HenNet()
-    hn.build_model(context_input=ce, history_input=he, output=s, epochs=50)
+    hn.build_model(context_input=ce, history_input=he, output=s, epochs=100)
     return
 
 main()
