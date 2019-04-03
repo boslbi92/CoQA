@@ -13,9 +13,9 @@ import os, time
 
 class HenNet():
     def __init__(self):
-        self.embedding_dim = 300
-        self.num_passage_words = 1200
-        self.num_question_words = 30
+        self.embedding_dim = 1024
+        self.num_passage_words = 1010
+        self.num_question_words = 75
         self.dropout_rate = 0.2
         self.regularizer = l2(l=0.001)
         self.tensorboard = TensorBoard(log_dir='train_logs/{}'.format(time.time()))
@@ -89,8 +89,8 @@ class HenNet():
         henNet.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
         henNet.summary(line_length=175)
-        henNet.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=20,
-                  shuffle=True, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
+        henNet.fit(x=[history_input, context_input], y=[output], epochs=epochs, batch_size=2,
+                  shuffle=False, validation_split=0.2, callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
 
     def _get_custom_objects(self):
         custom_objects = super(HenNet, self)._get_custom_objects()

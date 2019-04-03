@@ -4,7 +4,7 @@ from tqdm import tqdm
 from bert_serving.client import BertClient
 from bert_serving.server import BertServer
 from keras.preprocessing.sequence import pad_sequences
-from collections import OrderedDict
+from collections import Counter
 import os, json, pickle, time
 
 # bert-serving-start -model_dir /media/Ubuntu/Research/Thesis/data/BERT-cased-large/ -num_worker=4 -pooling_strategy=NONE -max_seq_len=NONE
@@ -12,69 +12,81 @@ import os, json, pickle, time
 class CoQAPreprocessor():
     def __init__(self):
         self.context_len, self.query_len, self.history_len = 0, 0, 0
-        self.lemma_dict = {'_PAD_': 0}
-        self.context_dict = dict()
-        self.embeddings = dict()
-        self.lemma_id = 1
+        self.context_data, self.embeddings = {}, {}
+        self.pos_labels, self.ner_labels = Counter(), Counter()
         self.data_path = os.getcwd() + '/data/processed/'
         self.embedding_path = os.getcwd() + '/embeddings/'
         self.train_path = os.getcwd() + '/data/training/'
         self.visited = {}
 
-    def build_BERT_embeddings(self):
-        with open(self.data_path + 'lemma_dict.json') as data_file:
-            texts = json.load(data_file)
-
-        texts = list(texts.keys())
-        original_tokens = texts.copy()
-        for x in range(len(texts)):
-            texts[x] = [texts[x]]
-
+    def get_contextual_embeddings(self, words_tokenized):
         bc = BertClient()
-        encoding = bc.encode(texts, is_tokenized=True, show_tokens=True)
-        vectors, tokens = encoding[0], np.array(encoding[1])
-        print('Embedding shape : {}'.format(vectors.shape))
-        word_vectors, tokens = vectors[:, 1, :], tokens[:, 1]
-
-        embeddings = dict()
-        assert vectors.shape[1] == 3
-        assert len(tokens) == word_vectors.shape[0] == len(original_tokens)
-        for x in range(len(original_tokens)):
-            ot, rt = original_tokens[x], tokens[x]
-            if rt != '[UNK]':
-                embeddings[ot] = word_vectors[x]
+        encoding = bc.encode([words_tokenized], is_tokenized=True, show_tokens=True)
+        vectors, tokens = np.squeeze(encoding[0]), np.squeeze(np.array(encoding[1]))
+        en_dim = len(vectors)-1
+        vectors, tokens = vectors[1:en_dim], tokens[1:en_dim]
+        full_vectors = []
+        for i in range(len(tokens)):
+            if tokens[i] == '[UNK]':
+                original = words_tokenized[i]
+                if original in ['<Q-END>','<A-END>']:
+                    full_vectors.append(np.zeros(shape=(vectors.shape[1])))
+                else:
+                    subword_encoding, subword_tokens = bc.encode([original], is_tokenized=False, show_tokens=True)
+                    sub_dim = len(subword_encoding[0])-1
+                    subword_encoding, subword_tokens = subword_encoding[0][1:sub_dim], subword_tokens[0][1:sub_dim]
+                    subword_vector = np.average(subword_encoding, axis=0)
+                    full_vectors.append(subword_vector)
             else:
-                embeddings[ot] = np.zeros(word_vectors.shape[1])
+                full_vectors.append(vectors[i])
+        assert len(full_vectors) == len(vectors) == len(words_tokenized)
+        return np.array(full_vectors)
 
-        print ('Embedding dict of size {} generated, writing to json ...'.format(len(embeddings)))
-        with open(self.embedding_path + 'bert_embeddings_dev.pickle', 'wb') as f:
-            pickle.dump(embeddings, f, protocol=4)
+    def add_to_labels(self, labels, type=None):
+        if type == 'pos':
+            label_map = self.pos_labels
+        if type == 'ner':
+            label_map = self.ner_labels
+        for l in labels:
+            label_map[l] += 1
+        return
 
-        return (embeddings)
+    def load_training_data(self):
+        print('loading training data ...\n')
+        data_path = self.train_path
+        with open(data_path + 'train-context-emb.pickle', 'rb') as f:
+            ce = pickle.load(f)
+        with open(data_path + 'train-context-nlp.pickle', 'rb') as f:
+            cnlp = pickle.load(f)
+        with open(data_path + 'train-history-emb.pickle', 'rb') as f:
+            he = pickle.load(f)
+        with open(data_path + 'train-history-nlp.pickle', 'rb') as f:
+            hnlp = pickle.load(f)
+        with open(data_path + 'train-spans.pickle', 'rb') as f:
+            s = pickle.load(f)
 
-    def add_to_lemma_map(self, words):
-        lemma_id = []
-        for w in words:
-            if w not in self.lemma_dict:
-                self.lemma_dict[w] = self.lemma_id
-                lemma_id.append(self.lemma_id)
-                self.lemma_id += 1
-            else:
-                lemma_id.append(self.lemma_dict[w])
-        return lemma_id
+        print ('context embedding dim: {}'.format(ce.shape))
+        print ('c-nlp embedding dim: {}'.format(cnlp.shape))
+        print ('history embedding dim: {}'.format(he.shape))
+        print ('h-nlp embedding dim: {}'.format(hnlp.shape))
+        print ('span embedding dim: {}'.format(s.shape))
+        return (ce, cnlp, he, hnlp, s)
 
-    def save_processed_data(self, train_context, train_history, spans, option, save):
+    def save_processed_data(self, train_context, train_history, spans, stats, option, save):
         if save:
             print ('saving data ...')
             data_path = self.data_path
             with open(data_path + '{}-processed-context.json'.format(option), 'w') as f:
                 json.dump(train_context, f, indent=4)
-            with open(data_path + '{}-processed-history.json'.format(option), 'w') as f:
-                json.dump(train_history, f, indent=4)
+            with open(data_path + '{}-stats.json'.format(option), 'w') as f:
+                json.dump(stats, f, indent=4)
+            with open(data_path + '{}-processed-history.pickle'.format(option), 'wb') as f:
+                pickle.dump(train_history, f, protocol=4)
+            with open(data_path + '{}-context-map.pickle'.format(option), 'wb') as f:
+                pickle.dump(self.context_data, f, protocol=4)
             with open(data_path + '{}-processed-spans.pickle'.format(option), 'wb') as f:
                 pickle.dump(spans, f, protocol=4)
-            with open(data_path + 'lemma_dict.json'.format(option), 'w') as f:
-                json.dump(self.lemma_dict, f, indent=4)
+            print ('saving completed\n')
         return
 
     def process_CoQA(self, option='dev', save=False):
@@ -87,25 +99,32 @@ class CoQAPreprocessor():
             print ('Read {} conversations\n'.format(num_conv))
 
         train_context, train_history, test = [], [], []
+        count = 0
 
         # process each conversation
         time.sleep(0.5)
         for x in tqdm(j['data'], total=num_conv):
+            if count == 4: break
             # context preprocessing
             original_context, annotated_context, context_id = x['context'], x['annotated_context'], x['id']
-            words = annotated_context['lemma']
-            lemma_id = self.add_to_lemma_map(words)
-            char_id, ent_id, pos_id = annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
-            context_info = {'context_words': words, 'context_char': char_id, 'context_entity': ent_id,
-                            'context_pos': pos_id, 'raw': original_context, 'id': context_id, 'lemma_id': lemma_id}
-            self.context_dict[context_id] = context_info
+            words, char_id, ent_id, pos_id = annotated_context['lemma'], annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
+            context_embedding = self.get_contextual_embeddings(words)
+            context_info = {'context_words': words, 'context_entity': ent_id, 'context_pos': pos_id, 'raw': original_context, 'id': context_id,
+                            'num_words': len(words),'context_embedding': context_embedding}
 
+            # compute max words in context
             if len(words) > self.context_len:
                 self.context_len = len(words)
+
+            # save context info in dict
+            self.context_data[context_id] = context_info
+            self.add_to_labels(context_info['context_pos'], type='pos')
+            self.add_to_labels(context_info['context_entity'], type='ner')
 
             # history parsing for each turn
             queries, answers, targets = [], [], []
             for history in x['qas']:
+                span = history['answer_span']
                 q, a = history['annotated_question'], history['annotated_answer']
                 raw_question, raw_answer = history['question'], history['raw_answer']
                 q_words, q_char_id, q_ent_id, q_pos_id = q['lemma'], q['charid'], q['ent_id'], q['pos_id']
@@ -113,39 +132,33 @@ class CoQAPreprocessor():
 
                 q_info = {'q_words': q_words, 'q_char': q_char_id, 'q_entity': q_ent_id, 'q_pos': q_pos_id, 'raw': raw_question, 'turn': history['turn_id']}
                 a_info = {'a_words': a_words, 'a_char': a_char_id, 'a_entity': a_ent_id, 'a_pos': a_pos_id, 'raw': raw_answer, 'turn': history['turn_id']}
-                span = history['answer_span']
 
                 queries.append(q_info)
                 answers.append(a_info)
                 full_span = self.expand_spans(span, len(words), words, raw_answer)
                 targets.append(full_span)
 
+                # copmute max words in query
                 if len(q_words) > self.query_len:
                     self.query_len = len(q_words)
+            repeated_contexts, contextualized_samples = self.contextualize(context_id, queries, answers, window=3)
 
-            del context_info['context_char']
-            repeated_contexts, contextualized_samples = self.contextualize(context_info, queries, answers, window=3)
+            # add contextualized samples
             train_context += repeated_contexts
             train_history += contextualized_samples
             test += targets
+            count += 1
 
         time.sleep(0.5)
         assert len(test) == len(train_context) == len(train_history)
         print ('Total {} turns processed'.format(len(test)))
         print ('max context words : {}, max history words : {}, max query words : {}'.format(self.context_len+1, self.history_len+1, self.query_len+1))
-        print('vocab size : {}'.format(len(self.lemma_dict)+1))
 
-        self.save_processed_data(train_context, train_history, test, option, save)
-        return (train_context, train_history, test)
+        stats = {'pos_ids': len(self.pos_labels), 'ner_ids': len(self.ner_labels)}
+        self.save_processed_data(train_context, train_history, test, stats, option, save)
+        return
 
-    def expand_spans(self, span, context_length, words, raw_answer):
-        spans = np.zeros(shape=(context_length, 2))
-        true_start, true_end = span[0], span[1]
-        spans[true_start, 0] = 1.0
-        spans[true_end, 1] = 1.0
-        return spans
-
-    def contextualize(self, context, queries, answers, window=1):
+    def contextualize(self, context_id, queries, answers, window=1):
         # contextual appending
         repeat_contexts, contextualized_samples, targets = [], [], []
 
@@ -162,69 +175,72 @@ class CoQAPreprocessor():
             for j in range(len(prev_queries)):
                 q, a = prev_queries[j], prev_answers[j]
                 history_info['h_words'] += q['q_words'] + ['<Q-END>'] + a['a_words'] + ['<A-END>']
-                # history_info['h_char'] += q['q_char'] + [[-1]] + a['a_char'] + [[-1]]
                 history_info['h_entity'] += q['q_entity'] + [-1] + a['a_entity'] + [-1]
                 history_info['h_pos'] += q['q_pos'] + [-1] + a['a_pos'] + [-1]
                 history_info['raw'] += q['raw'] + ' <Q-END> ' + a['raw'] + ' <A-END> '
                 history_info['turn'] += [q['turn']] + ['<Q-END>'] + [a['turn']] + ['<A-END>']
+                # history_info['h_char'] += q['q_char'] + [[-1]] + a['a_char'] + [[-1]]
 
             # current info
-            # history_info['context_id'] = context['id']
+            history_info['context_id'] = context_id
             history_info['h_words'] += current_query['q_words'] + ['<Q-END>']
-            # history_info['h_char'] += current_query['q_char'] + [[-1]]
             history_info['h_entity'] += current_query['q_entity'] + [-1]
             history_info['h_pos'] += current_query['q_pos'] + [-1]
             history_info['raw'] += current_query['raw'] + ' <Q-END>'
             history_info['turn'] += [current_query['turn']] + ['<Q-END>']
+            # history_info['h_char'] += current_query['q_char'] + [[-1]]
+            history_info['history_embedding'] = self.get_contextual_embeddings(history_info['h_words'])
 
-            if len(history_info['h_pos']) > self.history_len:
-                self.history_len = len(history_info['h_pos'])
+            # compute max history words
+            if len(history_info['h_words']) > self.history_len:
+                self.history_len = len(history_info['h_words'])
 
-            lemma_id = self.add_to_lemma_map(history_info['h_words'])
-            history_info['lemma_id'] = lemma_id
-            repeat_contexts.append(context)
+            self.add_to_labels(history_info['h_pos'], type='pos')
+            self.add_to_labels(history_info['h_entity'], type='ner')
+            repeat_contexts.append(context_id)
             contextualized_samples.append(history_info)
+
         assert len(repeat_contexts) == len(contextualized_samples)
         return (repeat_contexts, contextualized_samples)
 
     def prepare_training_set(self, history_pad=75, context_pad=1010, save=False):
-        with open(self.data_path + 'dev-processed-context.json') as data_file:
-            context = pd.read_json(data_file)
-        with open(self.data_path + 'dev-processed-history.json') as data_file:
-            history = pd.read_json(data_file)
-        with open(self.data_path + 'dev-processed-spans.pickle', 'rb') as data_file:
-            test = np.array(pickle.load(data_file))
-        with open(self.data_path + 'lemma_dict.json') as data_file:
-            lemma_map = json.load(data_file)
-            lemma_map = {v: k for k, v in lemma_map.items()}
-        with open(self.embedding_path + 'bert_embeddings_dev.pickle', 'rb') as data_file:
-            embeddings = pickle.load(data_file)
+        with open(self.data_path + 'dev-processed-context.json') as f:
+            context_ids = json.load(f)
+        with open(self.data_path + 'dev-processed-history.pickle', 'rb') as f:
+            history = pickle.load(f)
+            history = pd.DataFrame(history)
+        with open(self.data_path + 'dev-context-map.pickle', 'rb') as f:
+            context = pickle.load(f)
+        with open(self.data_path + 'dev-processed-spans.pickle', 'rb') as f:
+            test = np.array(pickle.load(f))
+
+        repeat_context = []
+        for cid in context_ids:
+            repeat_context.append(context[cid])
+        context = pd.DataFrame(repeat_context)
 
         # span padding
         print ('Preparing for span input ...')
-        bert_matrix = np.zeros(shape=(len(embeddings)+1, 1024))
         spans = pad_sequences(test.T, maxlen=context_pad, dtype=float, value=0.0)
 
         # context padding
         print ('Preparing for context input ...')
-        context_lemma_id = pad_sequences(context['lemma_id'].values, maxlen=context_pad, dtype=int, value=0)
         context_entity = pad_sequences(context['context_entity'].values, maxlen=context_pad, dtype=int, value=0)
         context_pos = pad_sequences(context['context_pos'].values, maxlen=context_pad, dtype=int, value=0)
-        context_words = pad_sequences(context['context_words'].values, maxlen=context_pad, dtype=object, value='_PAD_')
+        context_embedding = pad_sequences(context['context_embedding'].values.T, maxlen=context_pad, dtype=float, value=0.0)
 
-        context_word_input = np.apply_along_axis(self.build_bert, axis=1, arr=context_lemma_id, e=embeddings, lm=lemma_map, bert=bert_matrix)
+        # context_embedding = np.apply_along_axis(self.build_bert, axis=1, arr=context_lemma_id, e=embeddings, lm=lemma_map, bert=bert_matrix)
         context_entity = np.apply_along_axis(self.slice, axis=1, arr=context_entity)
         context_pos = np.apply_along_axis(self.slice, axis=1, arr=context_pos)
         c_nlp_input = np.concatenate((context_entity, context_pos), axis=2)
 
         # history padding
         print ('Preparing for history input ...')
-        lemma_id = pad_sequences(history['lemma_id'].values, maxlen=history_pad, dtype=int, value=0)
         h_entity = pad_sequences(history['h_entity'].values, maxlen=history_pad, dtype=int, value=0)
         h_pos = pad_sequences(history['h_pos'].values, maxlen=history_pad, dtype=int, value=0)
-        h_words = pad_sequences(history['h_words'].values, maxlen=history_pad, dtype=object, value='_PAD_')
+        h_embedding = pad_sequences(history['history_embedding'].values.T, maxlen=history_pad, dtype=float, value=0.0)
 
-        history_word_input = np.apply_along_axis(self.build_bert, axis=1, arr=lemma_id, e=embeddings, lm=lemma_map, bert=bert_matrix)
+        # history_word_input = np.apply_along_axis(self.build_bert, axis=1, arr=lemma_id, e=embeddings, lm=lemma_map, bert=bert_matrix)
         h_entity = np.apply_along_axis(self.slice, axis=1, arr=h_entity)
         h_pos = np.apply_along_axis(self.slice, axis=1, arr=h_pos)
         h_nlp_input = np.concatenate((h_entity, h_pos), axis=2)
@@ -233,20 +249,25 @@ class CoQAPreprocessor():
             print('saving training data ...')
             data_path = self.train_path
             with open(data_path + 'train-context-emb.pickle', 'wb') as f:
-                pickle.dump(context_word_input, f, protocol=4)
+                pickle.dump(context_embedding, f, protocol=4)
             with open(data_path + 'train-context-nlp.pickle', 'wb') as f:
                 pickle.dump(c_nlp_input, f, protocol=4)
             with open(data_path + 'train-history-emb.pickle', 'wb') as f:
-                pickle.dump(history_word_input, f, protocol=4)
+                pickle.dump(h_embedding, f, protocol=4)
             with open(data_path + 'train-history-nlp.pickle', 'wb') as f:
                 pickle.dump(h_nlp_input, f, protocol=4)
             with open(data_path + 'train-spans.pickle', 'wb') as f:
                 pickle.dump(spans, f, protocol=4)
-            with open(data_path + 'bert-emb.pickle', 'wb') as f:
-                pickle.dump(bert_matrix, f, protocol=4)
             print('saving completed')
 
-        return (context_word_input, c_nlp_input, history_word_input, h_nlp_input, spans, bert_matrix)
+        return
+
+    def expand_spans(self, span, context_length, words, raw_answer):
+        spans = np.zeros(shape=(context_length, 2))
+        true_start, true_end = span[0], span[1]
+        spans[true_start, 0] = 1.0
+        spans[true_end, 1] = 1.0
+        return spans
 
     def slice(self, X):
         expanded_dim = np.zeros(shape=(len(X), 1))
@@ -271,4 +292,7 @@ class CoQAPreprocessor():
 
 # preprocessor = CoQAPreprocessor()
 # preprocessor.process_CoQA(save=True)
-# context_word_input, c_nlp_input, history_word_input, h_nlp_input, spans, bert_matrix = preprocessor.prepare_training_set(save=False)
+# time.sleep(1.0)
+# preprocessor.prepare_training_set(save=True)
+# time.sleep(1.0)
+# preprocessor.load_training_data()
