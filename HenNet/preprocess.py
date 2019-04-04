@@ -267,7 +267,11 @@ class CoQAPreprocessor():
                 start_index, end_idnex = np.argmax(start), np.argmax(end)
                 target = ' '.join(context_words[i][start_index:end_idnex+1])
                 target = bytes(target, 'utf-8').decode('utf-8', 'ignore')
-                san.write((target + '\n'))
+                try:
+                    san.write((target + '\n'))
+                except:
+                    print(target)
+                    san.write('codec error\n')
                 reshaped_spans.append([start, end])
             spans = np.array(reshaped_spans)
             san.close()
