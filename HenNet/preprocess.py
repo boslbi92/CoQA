@@ -270,7 +270,6 @@ class CoQAPreprocessor():
                 try:
                     san.write((target + '\n'))
                 except:
-                    print(target)
                     san.write('codec error\n')
                 reshaped_spans.append([start, end])
             spans = np.array(reshaped_spans)
