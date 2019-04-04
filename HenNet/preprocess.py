@@ -111,6 +111,7 @@ class CoQAPreprocessor():
         train_context, train_history, test = [], [], []
         count = 0
 
+        print ('preparing BERT embedding ...')
         # process each conversation
         time.sleep(0.5)
         for x in tqdm(j['data'], total=num_conv):
@@ -217,6 +218,7 @@ class CoQAPreprocessor():
         return (repeat_contexts, contextualized_samples)
 
     def prepare_training_set(self, history_pad=75, context_pad=1010, save=False):
+        print ('preparing training set ...')
         with open(self.data_path + 'dev-processed-context.json') as f:
             context_ids = json.load(f)
         with open(self.data_path + 'dev-processed-history.pickle', 'rb') as f:
@@ -264,6 +266,7 @@ class CoQAPreprocessor():
                 start, end = spans[i][:,0], spans[i][:,1]
                 start_index, end_idnex = np.argmax(start), np.argmax(end)
                 target = ' '.join(context_words[i][start_index:end_idnex+1])
+                target = bytes(target, 'utf-8').decode('utf-8', 'ignore')
                 san.write((target + '\n'))
                 reshaped_spans.append([start, end])
             spans = np.array(reshaped_spans)
