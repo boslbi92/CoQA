@@ -61,9 +61,9 @@ class CoQAPreprocessor():
             label_map[l] += 1
         return
 
-    def load_training_data(self, training_path):
+    def load_training_data(self):
         print('loading training data ...\n')
-        data_path = training_path
+        data_path = self.train_path
         with open(data_path + 'train-context-emb.pickle', 'rb') as f:
             ce = pickle.load(f)
         with open(data_path + 'train-context-nlp.pickle', 'rb') as f:
@@ -217,7 +217,7 @@ class CoQAPreprocessor():
         assert len(repeat_contexts) == len(contextualized_samples)
         return (repeat_contexts, contextualized_samples)
 
-    def prepare_training_set(self, history_pad=75, context_pad=1010, save=False, training_path=None):
+    def prepare_training_set(self, history_pad=75, context_pad=1010, save=False):
         print ('preparing training set ...')
         with open(self.data_path + 'dev-processed-context.json') as f:
             context_ids = json.load(f)
@@ -277,10 +277,7 @@ class CoQAPreprocessor():
 
         time.sleep(1.0)
         if save:
-            if training_path == None:
-                data_path = self.train_path
-            else:
-                data_path = training_path
+            data_path = self.train_path
             print('saving training data to {}...'.format(data_path))
             with open(data_path + 'train-context-emb.pickle', 'wb') as f:
                 pickle.dump(context_embedding, f, protocol=4)
@@ -294,8 +291,7 @@ class CoQAPreprocessor():
                 pickle.dump(spans, f, protocol=4)
             time.sleep(1.0)
             print('saving completed')
-
-        return
+        return (context_embedding, c_nlp_input, h_embedding, h_nlp_input, spans)
 
     def extract_sentences(self, sentences, words):
         sents = []
@@ -316,11 +312,8 @@ class CoQAPreprocessor():
             expanded_dim[i, :] = X[i]
         return expanded_dim
 
-    def start_pipeline(self, conv_limit=5, generate_data=False, training_path=None):
+    def start_pipeline(self, conv_limit=5, generate_data=False):
         if generate_data:
             self.process_CoQA(save=True, conv_limit=conv_limit)
             time.sleep(1.0)
-
-        # self.prepare_training_set(save=True, training_path=training_path)
-        # time.sleep(1.0)
-        return self.load_training_data(training_path=training_path)
+        return self.prepare_training_set(save=False)
