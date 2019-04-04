@@ -217,7 +217,7 @@ class CoQAPreprocessor():
         assert len(repeat_contexts) == len(contextualized_samples)
         return (repeat_contexts, contextualized_samples)
 
-    def prepare_training_set(self, history_pad=75, context_pad=1010, save=False):
+    def prepare_training_set(self, history_pad=75, context_pad=1010, save=False, training_path=None):
         print ('preparing training set ...')
         with open(self.data_path + 'dev-processed-context.json') as f:
             context_ids = json.load(f)
@@ -277,8 +277,11 @@ class CoQAPreprocessor():
 
         time.sleep(1.0)
         if save:
-            print('saving training data ...')
-            data_path = self.train_path
+            if training_path == None:
+                data_path = self.train_path
+            else:
+                data_path = training_path
+            print('saving training data to {}...'.format(data_path))
             with open(data_path + 'train-context-emb.pickle', 'wb') as f:
                 pickle.dump(context_embedding, f, protocol=4)
             with open(data_path + 'train-context-nlp.pickle', 'wb') as f:
@@ -313,11 +316,11 @@ class CoQAPreprocessor():
             expanded_dim[i, :] = X[i]
         return expanded_dim
 
-    def start_pipeline(self, conv_limit=5, generate_data=False):
+    def start_pipeline(self, conv_limit=5, generate_data=False, training_path=None):
         if generate_data:
             self.process_CoQA(save=True, conv_limit=conv_limit)
             time.sleep(1.0)
 
-        self.prepare_training_set(save=True)
+        self.prepare_training_set(save=True, training_path=training_path)
         time.sleep(1.0)
         return self.load_training_data()
