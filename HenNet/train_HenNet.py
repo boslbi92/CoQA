@@ -12,10 +12,11 @@ def main():
     parser = argparse.ArgumentParser(description='HenNet Trainer')
     parser.add_argument("-c", help='number of convs to train', type=int, default=1000000)
     parser.add_argument("-b", help='batch size', type=int, default=10)
+    parser.add_argument("-g", help='generate data', type=bool, default=False)
     args = parser.parse_args()
 
     prep = CoQAPreprocessor()
-    ce, cnlp, he, hnlp, s = prep.start_pipeline(conv_limit=args.c)
+    ce, cnlp, he, hnlp, s = prep.start_pipeline(conv_limit=args.c, generate_data=args.g)
 
     time.sleep(5.0)
     print('Training HenNet ...\n')

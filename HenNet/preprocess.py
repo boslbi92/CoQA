@@ -307,9 +307,11 @@ class CoQAPreprocessor():
             expanded_dim[i, :] = X[i]
         return expanded_dim
 
-    def start_pipeline(self, conv_limit=5):
-        self.process_CoQA(save=True, conv_limit=conv_limit)
-        time.sleep(1.0)
+    def start_pipeline(self, conv_limit=5, generate_data=False):
+        if generate_data:
+            self.process_CoQA(save=True, conv_limit=conv_limit)
+            time.sleep(1.0)
+
         self.prepare_training_set(save=True)
         time.sleep(1.0)
         return self.load_training_data()
