@@ -61,9 +61,9 @@ class CoQAPreprocessor():
             label_map[l] += 1
         return
 
-    def load_training_data(self):
+    def load_training_data(self, training_path):
         print('loading training data ...\n')
-        data_path = self.train_path
+        data_path = training_path
         with open(data_path + 'train-context-emb.pickle', 'rb') as f:
             ce = pickle.load(f)
         with open(data_path + 'train-context-nlp.pickle', 'rb') as f:
@@ -321,6 +321,6 @@ class CoQAPreprocessor():
             self.process_CoQA(save=True, conv_limit=conv_limit)
             time.sleep(1.0)
 
-        self.prepare_training_set(save=True, training_path=training_path)
-        time.sleep(1.0)
-        return self.load_training_data()
+        # self.prepare_training_set(save=True, training_path=training_path)
+        # time.sleep(1.0)
+        return self.load_training_data(training_path=training_path)
