@@ -122,9 +122,9 @@ class CoQAPreprocessor():
             original_context, annotated_context, context_id = x['context'], x['annotated_context'], x['id']
             words, sents, char_id, ent_id, pos_id = annotated_context['lemma'], annotated_context['sentences'], annotated_context['charid'], annotated_context['ent_id'], annotated_context['pos_id']
             sents = self.extract_sentences(sents, words)
-            context_embedding = self.get_contextual_embeddings(sents, words)
+            # context_embedding = self.get_contextual_embeddings(sents, words)
             context_info = {'context_words': words, 'context_entity': ent_id, 'context_pos': pos_id, 'raw': original_context, 'id': context_id,
-                            'num_words': len(words),'context_embedding': context_embedding}
+                            'num_words': len(words),'context_embedding': []}
 
             # compute max words in context
             if len(words) > self.context_len:
@@ -217,7 +217,7 @@ class CoQAPreprocessor():
         assert len(repeat_contexts) == len(contextualized_samples)
         return (repeat_contexts, contextualized_samples)
 
-    def prepare_training_set(self, history_pad=75, context_pad=1010, save=False):
+    def prepare_training_set(self, history_pad=75, context_pad=500, save=False):
         print ('preparing training set ...')
         with open(self.data_path + 'dev-processed-context.json') as f:
             context_ids = json.load(f)
@@ -314,6 +314,6 @@ class CoQAPreprocessor():
 
     def start_pipeline(self, conv_limit=5, generate_data=False):
         if generate_data:
-            self.process_CoQA(save=True, conv_limit=conv_limit)
+            self.process_CoQA(save=False, conv_limit=conv_limit)
             time.sleep(1.0)
         return self.prepare_training_set(save=False)

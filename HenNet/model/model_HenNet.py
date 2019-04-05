@@ -14,7 +14,8 @@ import os, time
 class HenNet():
     def __init__(self):
         self.embedding_dim = 1024
-        self.num_passage_words = 1010
+        self.encoding_dim = int(self.embedding_dim / 4)
+        self.num_passage_words = 500
         self.num_question_words = 75
         self.dropout_rate = 0.2
         self.regularizer = l2(l=0.001)
@@ -29,7 +30,7 @@ class HenNet():
 
         # PART 2: Build encoders
         # Shape: (batch_size, #words, embedding_dim)
-        encoding_dim = int(self.embedding_dim/2)
+        encoding_dim = self.encoding_dim
         encoded_question = Bidirectional(GRU(encoding_dim, return_sequences=True, dropout=self.dropout_rate), name='question_encoder')(question_input)
         encoded_passage = Bidirectional(GRU(encoding_dim, return_sequences=True, dropout=self.dropout_rate), name='passage_encoder')(passage_input)
 
@@ -64,7 +65,7 @@ class HenNet():
         # To predict the span word, we pass the output representation through each dense layers without
         # output size 1 (basically a dot product of a vector of weights and the output vectors) + softmax (to get a position)
         # Shape: (batch_size, num_passage_words)
-        span_begin_weights = TimeDistributed(Dense(units=1, kernel_regularizer=self.regularizer), name='span_begin_weights')(output_representation)
+        span_begin_weights = TimeDistributed(Dense(units=1, activation='relu'), name='span_begin_weights')(output_representation)
         span_begin_probabilities = MaskedSoftmax(name="output_begin_probs")(span_begin_weights)
 
         # PART 5-1: Weighted passages by span begin probs
@@ -75,12 +76,12 @@ class HenNet():
         sum_layer = WeightedSum(name="weighted_passages", use_masking=False)
         repeat_layer = RepeatLike(axis=1, copy_from_axis=1, name='tiled_weighted_passages')
         weighted_passages = repeat_layer([sum_layer([final_encoder2, span_begin_probabilities]), encoded_passage])
-        span_end_representation = Concatenate()([attention_output, final_encoder2, weighted_passages])
+        span_end_representation = ComplexConcat(combination="1,2,3,2*3")([attention_output, final_encoder2, weighted_passages])
 
         # PART 5-2: Span prediction layers (end)
-        span_end_encoder = Bidirectional(GRU(encoding_dim, return_sequences=True, dropout=self.dropout_rate), name='span_end_encoder')(span_end_representation)
+        span_end_encoder = Bidirectional(GRU(int(encoding_dim/2), return_sequences=True, dropout=self.dropout_rate), name='span_end_encoder')(span_end_representation)
         span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
-        span_end_weights = TimeDistributed(Dense(units=1, kernel_regularizer=self.regularizer), name='span_end_weights')(span_end_input)
+        span_end_weights = TimeDistributed(Dense(units=1, activation='relu'), name='span_end_weights')(span_end_input)
         span_end_probabilities = MaskedSoftmax(name="output_end_probs")(span_end_weights)
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 

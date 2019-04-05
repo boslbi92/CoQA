@@ -5,7 +5,7 @@ from keras import backend as K
 from keras.callbacks import Callback
 
 # predict the most likely span
-def get_best_span(span_begin_probs, span_end_probs):
+def get_best_span(span_begin_probs, span_end_probs, threshold=20):
     if len(span_begin_probs.shape) > 2 or len(span_end_probs.shape) > 2:
         raise ValueError("Input shapes must be (X,) or (1,X)")
     if len(span_begin_probs.shape) == 2:
@@ -21,7 +21,8 @@ def get_best_span(span_begin_probs, span_end_probs):
         val1 = span_begin_probs[begin_span_argmax]
         val2 = span_end_probs[j]
 
-        if val1 * val2 > max_span_probability:
+        span_size = j - begin_span_argmax
+        if val1 * val2 > max_span_probability and span_size <= threshold:
             best_word_span = (begin_span_argmax, j)
             max_span_probability = val1 * val2
 
@@ -56,9 +57,14 @@ class monitor_span(Callback):
         return
 
 def compute_loss(params):
-    pred_start, pred_end, true_start_index, true_end_index = params[0], params[1], params[2], params[3]
+    pred_start, pred_end, true_start_index, true_end_index, span_diff = params[0], params[1], params[2], params[3], params[4]
     start_prob = pred_start[true_start_index]
     end_prob = pred_end[true_end_index]
+
+    # length loss
+    span_diff = -K.sqrt(span_diff) / 15.0
+    # start_prob = tf.Print(start_prob, [start_prob, K.log(start_prob), K.log(end_prob), span_diff], "loss")
+
     loss = K.log(start_prob) + K.log(end_prob)
     return loss
 
@@ -66,13 +72,19 @@ def compute_loss(params):
 def negative_log_span(y_true, y_pred):
     pred_start, pred_end = y_pred[:,0,:], y_pred[:,1,:]
     true_start, true_end = K.cast(K.argmax(y_true[:,0,:], axis=1), dtype='int32'), K.cast(K.argmax(y_true[:,1,:], axis=1), dtype='int32')
-    batch_prob_sum = K.map_fn(compute_loss, elems=(pred_start, pred_end, true_start, true_end), dtype='float32')
+
+    pred_start_best = K.cast(K.argmax(pred_start, axis=1), dtype='int32')
+    pred_end_best = K.cast(K.argmax(pred_end, axis=1), dtype='int32')
+    span_difference = K.cast(K.abs(pred_end_best - pred_start_best), dtype='float32')
 
     # debugging
-    # y_true = tf.Print(y_true, [K.shape(true_start), (true_start, true_end)], "true_shape")
-    # y_pred = tf.Print(y_pred, [K.shape(pred_end)], "pred_shape")
+    # pred_start = tf.Print(pred_start, [K.shape(pred_start), pred_start_best, pred_end_best], "pred_start_info")
+    # pred_end = tf.Print(pred_start, [K.shape(span_difference), span_difference], "span_difference")
 
+    batch_prob_sum = K.map_fn(compute_loss, elems=(pred_start, pred_end, true_start, true_end, span_difference), dtype='float32')
     return -K.mean(batch_prob_sum, axis=0)
 
 
-
+# testing span
+# start, end = np.random.rand(1000,), np.random.rand(1000,)
+# print (get_best_span(start, end))
