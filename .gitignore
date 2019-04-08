@@ -26,7 +26,9 @@ SDNet/coqa/runs/*
 
 deep-qa/*
 
-HenNet/data/*
+HenNet/data/*.json
+HenNet/data/*.pkl
+
 HenNet/embeddings/*
 HenNet/train_logs/*
 HenNet/saved_models/*.hdf5
