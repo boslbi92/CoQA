@@ -96,8 +96,8 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             context_emb[k] = bert_v
-            if len(context_emb) == 5:
-                break
+            # if len(context_emb) == 5:
+            #     break
 
         print('generating question vectors ...')
         time.sleep(1.0)
@@ -106,8 +106,8 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             questions_emb[k] = bert_v
-            if len(questions_emb) == 5:
-                break
+            # if len(questions_emb) == 5:
+            #     break
 
         print ('generating response vectors ...')
         time.sleep(1.0)
@@ -116,8 +116,8 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             responses_emb[k] = bert_v
-            if len(responses_emb) == 5:
-                break
+            # if len(responses_emb) == 5:
+            #     break
 
         print ('saving vectors into files ...')
         time.sleep(1.0)
