@@ -96,12 +96,14 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             context_emb[k] = bert_v
-            if len(context_emb) == 5:
-                break
+            # if len(context_emb) == 5:
+            #     break
+
         time.sleep(1.0)
         with open(path + 'context_dev.pickle', 'wb') as f:
             pickle.dump(context_emb, f, protocol=4)
         print ('saving context vector completed !')
+
 
         print('generating question vectors ...')
         time.sleep(1.0)
@@ -110,12 +112,14 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             questions_emb[k] = bert_v
-            if len(questions_emb) == 5:
-                break
+            # if len(questions_emb) == 5:
+            #     break
+
         time.sleep(1.0)
         with open(path + 'questions_dev.pickle', 'wb') as f:
             pickle.dump(questions_emb, f, protocol=4)
         print ('saving questions vector completed !')
+
 
         print ('generating response vectors ...')
         time.sleep(1.0)
@@ -124,13 +128,15 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             responses_emb[k] = bert_v
-            if len(responses_emb) == 5:
-                break
+            # if len(responses_emb) == 5:
+            #     break
+
         time.sleep(1.0)
         with open(path + 'responses_dev.pickle', 'wb') as f:
             pickle.dump(responses_emb, f, protocol=4)
         print ('saving response vector completed !')
 
+        time.sleep(1.0)
         print ('embedder completed !\n')
         return
 
