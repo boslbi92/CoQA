@@ -87,8 +87,8 @@ class CoQAEmbeddor():
     def process_CoQA(self):
         context, questions, responses = self.read_processed_data()
         context_emb, questions_emb, responses_emb = {}, {}, {}
+        path = os.getcwd() + '/data/bert/'
 
-        # generate bert embeddings
         print ('generating context vectors ...')
         time.sleep(1.0)
         for k, v in tqdm(context.items()):
@@ -96,8 +96,12 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             context_emb[k] = bert_v
-            # if len(context_emb) == 5:
-            #     break
+            if len(context_emb) == 5:
+                break
+        time.sleep(1.0)
+        with open(path + 'context_dev.pickle', 'wb') as f:
+            pickle.dump(context_emb, f, protocol=4)
+        print ('saving context vector completed !')
 
         print('generating question vectors ...')
         time.sleep(1.0)
@@ -106,8 +110,12 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             questions_emb[k] = bert_v
-            # if len(questions_emb) == 5:
-            #     break
+            if len(questions_emb) == 5:
+                break
+        time.sleep(1.0)
+        with open(path + 'questions_dev.pickle', 'wb') as f:
+            pickle.dump(questions_emb, f, protocol=4)
+        print ('saving questions vector completed !')
 
         print ('generating response vectors ...')
         time.sleep(1.0)
@@ -116,18 +124,13 @@ class CoQAEmbeddor():
             bert_v = self.get_contextual_embeddings(sents, v['lemma'])
             bert_v = self.sum_4_layers(bert_v)
             responses_emb[k] = bert_v
-            # if len(responses_emb) == 5:
-            #     break
-
-        print ('saving vectors into files ...')
+            if len(responses_emb) == 5:
+                break
         time.sleep(1.0)
-        path = os.getcwd() + '/data/bert/'
-        with open(path + 'context_dev.pickle', 'wb') as f:
-            pickle.dump(context_emb, f, protocol=4)
-        with open(path + 'questions_dev.pickle', 'wb') as f:
-            pickle.dump(questions_emb, f, protocol=4)
         with open(path + 'responses_dev.pickle', 'wb') as f:
             pickle.dump(responses_emb, f, protocol=4)
+        print ('saving response vector completed !')
+
         print ('embedder completed !\n')
         return
 
