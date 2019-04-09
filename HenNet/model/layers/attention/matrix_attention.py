@@ -1,4 +1,5 @@
 from keras import backend as K
+from keras import initializers
 from overrides import overrides
 from model.layers import MaskedLayer
 
@@ -32,6 +33,7 @@ class MatrixAttention(MaskedLayer):
     '''
     def __init__(self, similarity_function='dot', **kwargs):
         self.similarity_function = similarity_function
+        self.init = initializers.get('glorot_uniform')
         super(MatrixAttention, self).__init__(**kwargs)
 
     @overrides
@@ -39,10 +41,15 @@ class MatrixAttention(MaskedLayer):
         tensor_1_dim = input_shape[0][-1]
         tensor_2_dim = input_shape[1][-1]
 
-        if tensor_1_dim != tensor_2_dim:
-            raise ConfigurationError("Tensor dims must match for dot product similarity, but were {} and {}".format(tensor_1_dim, tensor_2_dim))
+        if self.similarity_function == 'dot':
+            assert tensor_1_dim == tensor_2_dim
+            self.trainable_weights = []
 
-        self.trainable_weights = []
+        elif self.similarity_function == 'bilinear':
+            self.weight_matrix = K.variable(self.init((tensor_1_dim, tensor_2_dim)), name=self.name + "_weights")
+            self.bias = K.variable(self.init((1,)), name=self.name + "_bias")
+            self.trainable_weights = [self.weight_matrix, self.bias]
+
         super(MatrixAttention, self).build(input_shape)
 
     @overrides
@@ -72,7 +79,12 @@ class MatrixAttention(MaskedLayer):
         tile_dims_2 = K.concatenate([[1], [num_rows_1], [1, 1]], 0)
         tiled_matrix_1 = K.tile(K.expand_dims(matrix_1, axis=2), tile_dims_1)
         tiled_matrix_2 = K.tile(K.expand_dims(matrix_2, axis=1), tile_dims_2)
-        similarity = K.sum(tiled_matrix_1 * tiled_matrix_2, axis=-1)
+
+        if self.similarity_function == 'dot':
+            similarity = K.sum(tiled_matrix_1 * tiled_matrix_2, axis=-1)
+        elif self.similarity_function == 'bilinear':
+            dot_product = K.sum(K.dot(tiled_matrix_1, self.weight_matrix) * tiled_matrix_2, axis=-1)
+            similarity = K.tanh(dot_product + self.bias)
         return similarity
 
     @overrides

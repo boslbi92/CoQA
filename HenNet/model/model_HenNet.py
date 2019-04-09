@@ -35,7 +35,7 @@ class HenNet():
 
         # PART 3: Now we compute a similarity between the passage words and the question words
         # Shape: (batch_size, num_passage_words, num_question_words)
-        matrix_attention = MatrixAttention(similarity_function='dot', name='similarity_matrix')([encoded_passage, encoded_question])
+        matrix_attention = MatrixAttention(similarity_function='bilinear', name='similarity_matrix')([encoded_passage, encoded_question])
 
         # PART 3-1: Context-to-query (c2q) attention (normalized over question)
         # Shape: (batch_size, num_passage_words, embedding_dim)
@@ -64,7 +64,9 @@ class HenNet():
         # To predict the span word, we pass the output representation through each dense layers without
         # output size 1 (basically a dot product of a vector of weights and the output vectors) + softmax (to get a position)
         # Shape: (batch_size, num_passage_words)
-        span_begin_weights = TimeDistributed(Dense(units=1, activation='relu'), name='span_begin_weights')(output_representation)
+        span_begin_weights_inter = TimeDistributed(Dense(units=128), name='span_begin_weights_inter')(output_representation)
+        span_begin_weights_drop = TimeDistributed(Dropout(rate=self.dropout_rate), name='span_begin_weights_drop')(span_begin_weights_inter)
+        span_begin_weights = TimeDistributed(Dense(units=1), name='span_begin_weights')(span_begin_weights_drop)
         span_begin_probabilities = MaskedSoftmax(name="output_begin_probs")(span_begin_weights)
 
         # PART 5-1: Weighted passages by span begin probs
@@ -80,8 +82,12 @@ class HenNet():
         # PART 5-2: Span prediction layers (end)
         span_end_encoder = Bidirectional(GRU(int(encoding_dim/2), return_sequences=True, dropout=self.dropout_rate), name='span_end_encoder')(span_end_representation)
         span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
-        span_end_weights = TimeDistributed(Dense(units=1, activation='relu'), name='span_end_weights')(span_end_input)
+
+        span_end_weights_inter = TimeDistributed(Dense(units=128), name='span_end_weights_inter')(span_end_input)
+        span_end_weights_drop = TimeDistributed(Dropout(rate=self.dropout_rate), name='span_end_weights_drop')(span_end_weights_inter)
+        span_end_weights = TimeDistributed(Dense(units=1), name='span_end_weights')(span_end_weights_drop)
         span_end_probabilities = MaskedSoftmax(name="output_end_probs")(span_end_weights)
+
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams

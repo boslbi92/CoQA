@@ -62,7 +62,7 @@ def compute_loss(params):
     end_prob = pred_end[true_end_index]
 
     # length loss
-    span_diff = -K.sqrt(span_diff) / 15.0
+    # span_diff = -K.sqrt(span_diff) / 15.0
     # start_prob = tf.Print(start_prob, [start_prob, K.log(start_prob), K.log(end_prob), span_diff], "loss")
 
     loss = K.log(start_prob) + K.log(end_prob)
