@@ -10,18 +10,25 @@ import os, json, argparse, pickle, time
 def main():
     # argparser
     parser = argparse.ArgumentParser(description='HenNet Trainer')
-    parser.add_argument("-c", help='number of convs to train', type=int, default=1000000)
-    parser.add_argument("-b", help='batch size', type=int, default=10)
-    parser.add_argument("-g", help='generate data', type=bool, default=False)
+    parser.add_argument("-c", help='number of convs to train', type=int, default=100000)
+    parser.add_argument("-b", help='batch size', type=int, default=25)
     args = parser.parse_args()
 
     prep = CoQAPreprocessor()
-    ce, cnlp, he, hnlp, s = prep.start_pipeline(conv_limit=args.c, generate_data=args.g)
+    c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, targets = prep.start_pipeline(limit=args.c)
 
-    time.sleep(5.0)
+    print ('context embedding : {}'.format(c_emb.shape))
+    print ('context pos : {}'.format(c_pos.shape))
+    print ('context ent : {}'.format(c_ent.shape))
+    print ('history embedding : {}'.format(h_emb.shape))
+    print ('history pos : {}'.format(h_pos.shape))
+    print ('history ent : {}'.format(h_ent.shape))
+    print ('span : {}'.format(targets.shape))
+
+    time.sleep(2.0)
     print('Training HenNet ...\n')
     hn = HenNet()
-    hn.build_model(context_input=ce, history_input=he, output=s, epochs=100, batch=args.b, shuffle=False)
+    hn.build_model(context_input=c_emb, history_input=h_emb, output=targets, batch=args.b, epochs=100, shuffle=True)
     return
 
 main()

@@ -6,12 +6,11 @@ from bert_serving.client import BertClient
 from bert_serving.server import BertServer
 import os, json, pickle, time, argparse
 
+# bert-serving-start -model_dir /media/Ubuntu/Research/Thesis/data/BERT-cased-large/ -num_worker=4 -pooling_strategy=NONE -max_seq_len=NONE
+# -show_tokens_to_client -pooling_layer -4 -3 -2 -1 -cpu
 class CoQAEmbeddor():
     def __init__(self):
-        self.context_data, self.embeddings = {}, {}
-        self.data_path = os.getcwd() + '/data/processed/'
-        self.embedding_path = os.getcwd() + '/embeddings/'
-        self.visited = {}
+        self.bc = BertClient()
 
     def read_processed_data(self):
         path = os.getcwd() + '/data/processed'
@@ -58,8 +57,7 @@ class CoQAEmbeddor():
         return (context, questions, responses)
 
     def get_contextual_embeddings(self, sents, original_tokens):
-        bc = BertClient()
-
+        bc = self.bc
         full_vectors, full_tokens = [], []
         for sent in sents:
             encoding = bc.encode([sent], is_tokenized=True, show_tokens=True)
@@ -157,12 +155,11 @@ class CoQAEmbeddor():
 
 def main():
     parser = argparse.ArgumentParser(description='CoQA Bert Embeddor')
-    parser.add_argument("-o", help='choose between context, question or response', type=str, required=True)
+    parser.add_argument("-o", help='choose between context, question or response', type=str, required=False)
     args = parser.parse_args()
 
     emb = CoQAEmbeddor()
     emb.process_CoQA(option=args.o)
-    # a, b, c = emb.load_embeddings()
     return
 
 main()

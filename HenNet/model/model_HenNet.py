@@ -16,9 +16,8 @@ class HenNet():
         self.embedding_dim = 1024
         self.encoding_dim = int(self.embedding_dim / 4)
         self.num_passage_words = 500
-        self.num_question_words = 75
+        self.num_question_words = 50
         self.dropout_rate = 0.2
-        self.regularizer = l2(l=0.001)
         self.tensorboard = TensorBoard(log_dir='train_logs/{}'.format(time.time()))
         self.model_dir = os.getcwd() + '/saved_models/HenNet-{epoch:02d}-{val_loss:.3f}.hdf5'
         self.checkpoint = ModelCheckpoint(self.model_dir, monitor='val_loss')
