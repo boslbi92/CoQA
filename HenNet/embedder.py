@@ -6,30 +6,32 @@ from bert_serving.client import BertClient
 from bert_serving.server import BertServer
 import os, json, pickle, time, argparse
 
-# bert-serving-start -model_dir /media/Ubuntu/Research/Thesis/data/BERT-cased-large/ -num_worker=4 -pooling_strategy=NONE -max_seq_len=NONE
-# -show_tokens_to_client -pooling_layer -4 -3 -2 -1 -cpu
+# bert-serving-start -model_dir /media/Ubuntu/Research/Thesis/data/BERT-cased-large/ -num_worker=4 -pooling_strategy=NONE -max_seq_len=NONE -show_tokens_to_client -pooling_layer -4 -3 -2 -1 -cpu
 class CoQAEmbeddor():
-    def __init__(self):
+    def __init__(self, option):
         self.bc = BertClient()
+        self.option = option
 
     def read_processed_data(self):
         path = os.getcwd() + '/data/processed'
+        option = self.option
         print('Reading json file ...')
-        with open(path + '/contexts_dev.json') as f:
+        with open(path + '/contexts_{}.json'.format(option)) as f:
             context = json.load(f)
-        with open(path + '/questions_dev.json') as f:
+        with open(path + '/questions_{}.json'.format(option)) as f:
             questions = json.load(f)
-        with open(path + '/responses_dev.json') as f:
+        with open(path + '/responses_{}.json'.format(option)) as f:
             responses = json.load(f)
         return self.sanity_check(context, questions, responses)
 
     def load_embeddings(self):
         path = os.getcwd() + '/data/bert/'
-        with open(path + 'context_dev.pickle', 'rb') as f:
+        option = self.option
+        with open(path + 'context_{}.pickle'.format(option), 'rb') as f:
             context_emb = pickle.load(f)
-        with open(path + 'questions_dev.pickle', 'rb') as f:
+        with open(path + 'questions_{}.pickle'.format(option), 'rb') as f:
             questions_emb = pickle.load(f)
-        with open(path + 'responses_dev.pickle', 'rb') as f:
+        with open(path + 'responses_{}.pickle'.format(option), 'rb') as f:
             responses_emb = pickle.load(f)
         return (context_emb, questions_emb, responses_emb)
 
@@ -82,58 +84,55 @@ class CoQAEmbeddor():
         full_vectors = np.array(full_vectors)
         return full_vectors
 
-    def process_CoQA(self, option):
+    def process_CoQA(self, mode):
         context, questions, responses = self.read_processed_data()
         context_emb, questions_emb, responses_emb = {}, {}, {}
         path = os.getcwd() + '/data/bert/'
 
-        if option == 'context':
-            print ('generating context vectors ...')
+        if mode == 'context':
+            print ('generating {} context vectors ...'.format(self.option))
             time.sleep(1.0)
             for k, v in tqdm(context.items()):
                 sents = self.extract_sentences(v['sentences'], v['lemma'])
                 bert_v = self.get_contextual_embeddings(sents, v['lemma'])
                 bert_v = self.sum_4_layers(bert_v)
                 context_emb[k] = bert_v
-                # if len(context_emb) == 5:
-                #     break
+                # if len(context_emb) == 5: break
 
             time.sleep(1.0)
-            with open(path + 'context_dev.pickle', 'wb') as f:
+            with open(path + 'context_{}.pickle'.format(self.option), 'wb') as f:
                 pickle.dump(context_emb, f, protocol=4)
             print ('saving context vector completed !')
             return
 
-        if option == 'question':
-            print('generating question vectors ...')
+        if mode == 'question':
+            print('generating {} question vectors ...'.format(self.option))
             time.sleep(1.0)
             for k, v in tqdm(questions.items()):
                 sents = self.extract_sentences(v['sentences'], v['lemma'])
                 bert_v = self.get_contextual_embeddings(sents, v['lemma'])
                 bert_v = self.sum_4_layers(bert_v)
                 questions_emb[k] = bert_v
-                # if len(questions_emb) == 5:
-                #     break
+                # if len(questions_emb) == 20: break
 
             time.sleep(1.0)
-            with open(path + 'questions_dev.pickle', 'wb') as f:
+            with open(path + 'questions_{}.pickle'.format(self.option), 'wb') as f:
                 pickle.dump(questions_emb, f, protocol=4)
             print ('saving questions vector completed !')
             return
 
-        if option == 'response':
-            print ('generating response vectors ...')
+        if mode == 'response':
+            print ('generating {} response vectors ...'.format(self.option))
             time.sleep(1.0)
             for k, v in tqdm(responses.items()):
                 sents = self.extract_sentences(v['sentences'], v['lemma'])
                 bert_v = self.get_contextual_embeddings(sents, v['lemma'])
                 bert_v = self.sum_4_layers(bert_v)
                 responses_emb[k] = bert_v
-                # if len(responses_emb) == 5:
-                #     break
+                # if len(responses_emb) == 20: break
 
             time.sleep(1.0)
-            with open(path + 'responses_dev.pickle', 'wb') as f:
+            with open(path + 'responses_{}.pickle'.format(self.option), 'wb') as f:
                 pickle.dump(responses_emb, f, protocol=4)
             print ('saving response vector completed !')
             return
@@ -155,11 +154,12 @@ class CoQAEmbeddor():
 
 def main():
     parser = argparse.ArgumentParser(description='CoQA Bert Embeddor')
-    parser.add_argument("-o", help='choose between context, question or response', type=str, required=False)
+    parser.add_argument("-m", help='choose between context, question or response', type=str, required=True)
+    parser.add_argument("-o", help='choose between train or dev', type=str, required=True)
     args = parser.parse_args()
 
-    emb = CoQAEmbeddor()
-    emb.process_CoQA(option=args.o)
+    emb = CoQAEmbeddor(option=args.o)
+    emb.process_CoQA(mode=args.m)
     return
 
 main()
