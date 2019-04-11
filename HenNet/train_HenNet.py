@@ -10,12 +10,12 @@ import os, json, argparse, pickle, time
 def main():
     # argparser
     parser = argparse.ArgumentParser(description='HenNet Trainer')
-    parser.add_argument("-c", help='number of convs to train', type=int, default=100000)
+    parser.add_argument("-c", help='number of convs to train', type=int, default=300)
     parser.add_argument("-b", help='batch size', type=int, default=25)
     args = parser.parse_args()
 
     prep = CoQAPreprocessor()
-    c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, targets = prep.start_pipeline(limit=args.c)
+    cids, c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, targets = prep.start_pipeline(limit=args.c)
 
     print ('context embedding : {}'.format(c_emb.shape))
     print ('context pos : {}'.format(c_pos.shape))

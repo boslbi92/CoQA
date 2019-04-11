@@ -130,7 +130,7 @@ class CoQAPreprocessor():
         h_emb, h_pos, h_ent = np.array(h_emb), np.array(h_pos), np.array(h_ent)
         c_emb, c_pos, c_ent = np.array(c_emb), np.array(c_pos), np.array(c_ent)
         print ('loading training data finished ...\n')
-        return (c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, np.array(targets))
+        return (cids, c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, np.array(targets))
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
         history, history_pos, history_ent = [], [], []
