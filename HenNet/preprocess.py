@@ -7,30 +7,32 @@ from collections import Counter
 import os, json, pickle, time, copy
 
 class CoQAPreprocessor():
-    def __init__(self):
-        self.context_len, self.query_len, self.history_len = 0, 0, 0
-        self.c_pad, self.h_pad = 500, 75
+    def __init__(self, option):
+        self.option = option
+        self.context_len, self.history_len = 0, 0
+        self.c_pad, self.h_pad = 500, 100
         self.exclude = []
         self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.data_path = os.getcwd() + '/data/processed/'
-        self.train_path = os.getcwd() + '/data/training/'
 
     def load_embeddings(self):
         path = os.getcwd() + '/data/bert/'
-        with open(path + 'context_dev.pickle', 'rb') as f:
+        option = self.option
+        with open(path + 'context_{}.pickle'.format(option), 'rb') as f:
             context_emb = pickle.load(f)
-        with open(path + 'questions_dev.pickle', 'rb') as f:
+        with open(path + 'questions_{}.pickle'.format(option), 'rb') as f:
             questions_emb = pickle.load(f)
-        with open(path + 'responses_dev.pickle', 'rb') as f:
+        with open(path + 'responses_{}.pickle'.format(option), 'rb') as f:
             responses_emb = pickle.load(f)
         return (context_emb, questions_emb, responses_emb)
 
     def load_processed_data(self):
-        with open(self.data_path + 'contexts_dev.json') as f:
+        option = self.option
+        with open(self.data_path + 'contexts_{}.json'.format(option)) as f:
             c = json.load(f)
-        with open(self.data_path + 'questions_dev.json') as f:
+        with open(self.data_path + 'questions_{}.json'.format(option)) as f:
             q = json.load(f)
-        with open(self.data_path + 'responses_dev.json') as f:
+        with open(self.data_path + 'responses_{}.json'.format(option)) as f:
             r = json.load(f)
         assert len(q) == len(r)
 
@@ -56,6 +58,9 @@ class CoQAPreprocessor():
     def join_by_id(self, context, questions, responses, window=3):
         # join data
         for context_id, v in context.items():
+            if len(v['history']) <= 1:
+                continue
+
             history = v['history']
             contextual_samples = []
             for i in range(len(history) - window + 1):
@@ -77,7 +82,7 @@ class CoQAPreprocessor():
                 test.append(responses[h[-1]]['answer_span'])
         return (train, test)
 
-    def prepare_training(self, c_pad=500, h_pad=50, limit=500):
+    def prepare_training(self, c_pad=500, h_pad=100, limit=500):
         context, questions, responses = self.load_processed_data()
         train, test = self.join_by_id(context, questions, responses, window=3)
         context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
@@ -121,7 +126,6 @@ class CoQAPreprocessor():
             cids.append(cid)
             context_map[cid] = context_inputs
 
-
         c_emb, c_pos, c_ent = [], [], []
         for cid in cids:
             c_emb.append(context_map[cid]['context'])
@@ -129,7 +133,7 @@ class CoQAPreprocessor():
             c_ent.append(context_map[cid]['context_ent'])
         h_emb, h_pos, h_ent = np.array(h_emb), np.array(h_pos), np.array(h_ent)
         c_emb, c_pos, c_ent = np.array(c_emb), np.array(c_pos), np.array(c_ent)
-        print ('loading training data finished ...\n')
+        print ('loading {} data finished ...\n'.format(self.option))
         return (cids, c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, np.array(targets))
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
