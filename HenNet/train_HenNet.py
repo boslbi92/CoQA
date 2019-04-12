@@ -46,21 +46,20 @@ def main():
     print ('val turns : {}'.format(len(val_tids)))
     print ('-'*100)
 
-    if args.g == 'False':
+    if args.g.lower() == 'false':
         print('Training HenNet on CPU mode...\n')
         time.sleep(1.0)
         hn = HenNet(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1])
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb, val_h_nlp, val_c_nlp], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=4, callbacks=[monitor_span(), checkpoint])
-    if args.p == 'True':
+    elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
         time.sleep(1.0)
         hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1])
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb, val_h_nlp, val_c_nlp], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=4, callbacks=[monitor_span(), checkpoint])
-
 
     return
 
