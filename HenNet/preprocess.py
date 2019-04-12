@@ -125,13 +125,13 @@ class CoQAPreprocessor():
 
             # context input
             context_inputs['context'] = context_emb[cid]
-            context_inputs['context_pos'] = np.array(context[cid]['pos'])
-            context_inputs['context_ent'] = np.array(context[cid]['ent'])
+            context_inputs['context_pos'] = np.array(context[cid]['pos'], dtype=object)
+            context_inputs['context_ent'] = np.array(context[cid]['ent'], dtype=object)
 
             # context padding
             context_inputs['context'] = pad_sequences(context_inputs['context'].T, maxlen=c_pad, dtype=float, value=0.0).T
-            context_inputs['context_pos'] = list(pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=np.str, value='PAD')[0])
-            context_inputs['context_ent'] = list(pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=np.str, value='PAD')[0])
+            context_inputs['context_pos'] = list(pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
+            context_inputs['context_ent'] = list(pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
 
             # one hot
             for x in range(len(context_inputs['context_pos'])):
