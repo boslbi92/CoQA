@@ -18,7 +18,7 @@ class HenNet():
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
         self.nlp_dim = nlp_dim
-        self.dropout_rate = 0.2
+        self.dropout_rate = 0.25
 
     def build_model(self):
         encoding_dim = self.encoding_dim
