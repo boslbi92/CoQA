@@ -5,7 +5,7 @@ from keras import Model, optimizers
 from keras.regularizers import l2
 from keras.layers import Input, Embedding, Dense, Concatenate, TimeDistributed, Reshape
 from keras.layers import LSTM, GRU, Bidirectional, Dropout, Add, CuDNNGRU
-from keras.optimizers import Adam
+from keras.optimizers import RMSprop
 from model.layers.attention import MatrixAttention, WeightedSum, MaskedSoftmax
 from model.layers.backend import Max, Repeat, RepeatLike, ComplexConcat, StackProbs
 from model.metrics.custom_metrics import monitor_span, negative_log_span
@@ -96,7 +96,7 @@ class HenNet_GPU():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = Adam(clipvalue=0.5, clipnorm=10, lr=0.002, epsilon=0.1)
+        opt = RMSprop()
         henNet = Model(inputs=[question_input, passage_input, question_nlp_input, passage_nlp_input], outputs=[prob_output])
         henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)
