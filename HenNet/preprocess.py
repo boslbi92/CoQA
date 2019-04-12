@@ -11,8 +11,20 @@ class CoQAPreprocessor():
     def __init__(self, option, c_pad, h_pad):
         self.option = option
         self.c_pad, self.h_pad = c_pad, h_pad
+
+        self.pos_map = {'WP$': 40, 'IN': 10, 'WDT': 14, 'PRP': 25, 'TO': 22, 'LS': 47, 'JJ': 5, 'CD': 17, 'VBP': 30, 'DT': 4,
+         'NNS': 21, 'NFP': 44, 'WRB': 24, 'VB': 23, '_SP': 51, 'ADD': 49, 'NN': 7, 'NNPS': 43, 'XX': 46, 'NNP': 2,
+         'RBR': 34, "''": 26, '$': 45, ',': 11, '-RRB-': 9, '-LRB-': 8, 'MD': 35, 'SYM': 41, 'PDT': 38, 'VBD': 16,
+         'END': 1, 'PRP$': 13, 'FW': 48, 'CC': 20, ':': 18, 'PAD': 0, 'RB': 15, 'VBZ': 3, 'AFX': 50, 'POS': 39,
+         '``': 29, 'VBN': 19, 'JJR': 31, 'RP': 27, 'VBG': 28, 'JJS': 37, '.': 12, 'RBS': 32, 'HYPH': 6, 'UH': 42,
+         'WP': 33, 'EX': 36}
+        self.ent_map = {'END': 1, 'I-CARDINAL': 25, 'B-QUANTITY': 22, 'B-CARDINAL': 10, 'I-NORP': 34, 'B-EVENT': 26, 'B-ORG': 7,
+         'I-MONEY': 21, 'I-PERCENT': 33, 'I-ORG': 11, 'B-NORP': 12, 'B-ORDINAL': 24, 'I-WORK_OF_ART': 19, 'B-PRODUCT': 13,
+         'I-TIME': 17, 'B-TIME': 16, 'B-LANGUAGE': 31, 'I-EVENT': 27, 'I-DATE': 9, 'I-QUANTITY': 23, 'I-PRODUCT': 35,
+         'B-DATE': 8, 'B-WORK_OF_ART': 18, 'O': 4, 'I-PERSON': 3, 'I-GPE': 6, 'I-FAC': 36, 'I-LOC': 15, 'I-LAW': 30,
+         'B-GPE': 5, 'B-LOC': 14, 'B-LAW': 29, 'B-MONEY': 20, 'B-FAC': 28, 'B-PERCENT': 32, 'B-PERSON': 2, 'PAD': 0}
+
         self.context_len, self.history_len = 0, 0
-        self.pos_map, self.ent_map = {'PAD': 0, 'END': 1}, {'PAD': 0, 'END': 1}
         self.exclude = []
         self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.data_path = os.getcwd() + '/data/processed/'
@@ -38,7 +50,6 @@ class CoQAPreprocessor():
             r = json.load(f)
         assert len(q) == len(r)
 
-        pos_id, ent_id = 2, 2
         for cid, v in c.items():
             v['history'], v['contextual_history'] = [], []
             num_words = len(v['word'])
@@ -46,36 +57,10 @@ class CoQAPreprocessor():
                 self.context_len = num_words
             if num_words > self.c_pad:
                 self.exclude.append(cid)
-            for p in v['pos']:
-                if p not in self.pos_map:
-                    self.pos_map[p] = pos_id
-                    pos_id += 1
-            for p in v['ent']:
-                if p not in self.ent_map:
-                    self.ent_map[p] = ent_id
-                    ent_id += 1
 
         for qid, v in q.items():
             cid = qid.split('_')[0]
             c[cid]['history'].append(qid)
-            for p in v['pos']:
-                if p not in self.pos_map:
-                    self.pos_map[p] = pos_id
-                    pos_id += 1
-            for p in v['ent']:
-                if p not in self.ent_map:
-                    self.ent_map[p] = ent_id
-                    ent_id += 1
-
-        for qid, v in r.items():
-            for p in v['pos']:
-                if p not in self.pos_map:
-                    self.pos_map[p] = pos_id
-                    pos_id += 1
-            for p in v['ent']:
-                if p not in self.ent_map:
-                    self.ent_map[p] = ent_id
-                    ent_id += 1
 
         # exclude long sessions
         for cid in self.exclude:
