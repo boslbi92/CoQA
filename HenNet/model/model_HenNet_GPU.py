@@ -10,10 +10,10 @@ from model.layers.backend import Max, Repeat, RepeatLike, ComplexConcat, StackPr
 from model.metrics.custom_metrics import monitor_span, negative_log_span
 import os, time
 
-class HenNet():
+class HenNet_GPU():
     def __init__(self, c_pad, h_pad, nlp_dim):
         self.embedding_dim = 1024
-        self.encoding_dim = int(self.embedding_dim / 4)
+        self.encoding_dim = int(self.embedding_dim / 8)
         # self.encoding_dim = 20
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
