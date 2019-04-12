@@ -16,11 +16,12 @@ checkpoint = ModelCheckpoint(model_dir, monitor='val_loss', save_best_only=True)
 def main():
     # argparser
     parser = argparse.ArgumentParser(description='HenNet Trainer')
-    parser.add_argument("-b", help='batch size', type=int, default=100)
-    parser.add_argument("-c", help='context pad size', type=int, default=600)
+    parser.add_argument("-b", help='batch size', type=int, default=32)
+    parser.add_argument("-c", help='context pad size', type=int, default=500)
     parser.add_argument("-q", help='query pad size', type=int, default=100)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
     parser.add_argument("-g", help='GPU mode', type=str, default='False', required=True)
+    parser.add_argument("-d", help='hidden dimension scaling factor', type=int, default=4)
     args = parser.parse_args()
 
     # generator and dev set
@@ -49,17 +50,17 @@ def main():
     if args.g.lower() == 'false':
         print('Training HenNet on CPU mode...\n')
         time.sleep(1.0)
-        hn = HenNet(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1])
+        hn = HenNet(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1], hidden_scale=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb, val_h_nlp, val_c_nlp], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
-                        shuffle=True, use_multiprocessing=True, workers=4, callbacks=[monitor_span(), checkpoint])
+                        shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
     elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
         time.sleep(1.0)
-        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1])
+        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1], hidden_scale=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb, val_h_nlp, val_c_nlp], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
-                        shuffle=True, use_multiprocessing=True, workers=4, callbacks=[monitor_span(), checkpoint])
+                        shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
 
     return
 

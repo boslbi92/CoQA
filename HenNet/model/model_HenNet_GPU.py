@@ -11,10 +11,9 @@ from model.metrics.custom_metrics import monitor_span, negative_log_span
 import os, time
 
 class HenNet_GPU():
-    def __init__(self, c_pad, h_pad, nlp_dim):
+    def __init__(self, c_pad, h_pad, nlp_dim, hidden_scale):
         self.embedding_dim = 1024
-        self.encoding_dim = int(self.embedding_dim / 8)
-        # self.encoding_dim = 20
+        self.encoding_dim = int(self.embedding_dim / hidden_scale)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
         self.nlp_dim = nlp_dim
