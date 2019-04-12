@@ -96,7 +96,7 @@ class HenNet_GPU():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = Adam(clipvalue=0.5, lr=0.002, epsilon=0.1)
+        opt = Adam(clipvalue=0.5, clipnorm=10, lr=0.002, epsilon=0.1)
         henNet = Model(inputs=[question_input, passage_input, question_nlp_input, passage_nlp_input], outputs=[prob_output])
         henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)
