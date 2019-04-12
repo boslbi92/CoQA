@@ -131,7 +131,6 @@ class CoQAPreprocessor():
         context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
 
         # fill up values
-        print ('preparing training data ...')
         context_map, targets = {}, []
         h_emb, h_pos, h_ent, cids, tids = [], [], [], [], []
         iteration = min(limit, len(train))

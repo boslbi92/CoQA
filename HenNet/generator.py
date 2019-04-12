@@ -87,6 +87,10 @@ class CoQAGenerator(Sequence):
         self.pos_map = self.categorical_dict(self.pos_map)
         self.ent_map = self.categorical_dict(self.ent_map)
 
+        print (self.pos_map)
+        print ('-'*100)
+        print (self.ent_map)
+
         print ('{} {} conversations loaded'.format(len(c), option))
         return (c, q, r)
 

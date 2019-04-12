@@ -34,6 +34,7 @@ def main():
     f.close()
 
     print ('-'*100)
+    print ('dev dimension')
     print ('context bert dim : {}'.format(val_c_emb.shape))
     print ('context nlp dim : {}'.format(val_c_nlp.shape))
     print ('history bert dim : {}'.format(val_h_emb.shape))
