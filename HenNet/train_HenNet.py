@@ -16,8 +16,8 @@ def main():
     # argparser
     parser = argparse.ArgumentParser(description='HenNet Trainer')
     parser.add_argument("-b", help='batch size', type=int, default=100)
-    parser.add_argument("-c", help='context pad size', type=int, default=200)
-    parser.add_argument("-q", help='query pad size', type=int, default=50)
+    parser.add_argument("-c", help='context pad size', type=int, default=600)
+    parser.add_argument("-q", help='query pad size', type=int, default=100)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
     args = parser.parse_args()
 
