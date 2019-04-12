@@ -40,9 +40,9 @@ class monitor_span(Callback):
         pass
 
     def on_epoch_end(self, epoch, logs={}):
-        pred = np.array(self.model.predict([self.validation_data[0], self.validation_data[1]]))
+        pred = np.array(self.model.predict([self.validation_data[0], self.validation_data[1], self.validation_data[2], self.validation_data[3]]))
         pred_start, pred_end = pred[:,0,:], pred[:,1,:]
-        val_start, val_end = self.validation_data[2][:,0,:], self.validation_data[2][:,1,:]
+        val_start, val_end = self.validation_data[4][:,0,:], self.validation_data[4][:,1,:]
 
         epoch = epoch + 1
         log_path = os.getcwd() + '/train_logs/'
@@ -83,8 +83,3 @@ def negative_log_span(y_true, y_pred):
 
     batch_prob_sum = K.map_fn(compute_loss, elems=(pred_start, pred_end, true_start, true_end, span_difference), dtype='float32')
     return -K.mean(batch_prob_sum, axis=0)
-
-
-# testing span
-# start, end = np.random.rand(1000,), np.random.rand(1000,)
-# print (get_best_span(start, end))

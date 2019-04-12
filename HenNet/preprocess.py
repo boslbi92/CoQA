@@ -3,14 +3,16 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils import to_categorical
 from collections import Counter
 import os, json, pickle, time, copy
 
 class CoQAPreprocessor():
-    def __init__(self, option):
+    def __init__(self, option, c_pad, h_pad):
         self.option = option
+        self.c_pad, self.h_pad = c_pad, h_pad
         self.context_len, self.history_len = 0, 0
-        self.c_pad, self.h_pad = 500, 100
+        self.pos_map, self.ent_map = {'PAD': 0, 'END': 1}, {'PAD': 0, 'END': 1}
         self.exclude = []
         self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.data_path = os.getcwd() + '/data/processed/'
@@ -36,6 +38,7 @@ class CoQAPreprocessor():
             r = json.load(f)
         assert len(q) == len(r)
 
+        pos_id, ent_id = 2, 2
         for cid, v in c.items():
             v['history'], v['contextual_history'] = [], []
             num_words = len(v['word'])
@@ -43,17 +46,56 @@ class CoQAPreprocessor():
                 self.context_len = num_words
             if num_words > self.c_pad:
                 self.exclude.append(cid)
+            for p in v['pos']:
+                if p not in self.pos_map:
+                    self.pos_map[p] = pos_id
+                    pos_id += 1
+            for p in v['ent']:
+                if p not in self.ent_map:
+                    self.ent_map[p] = ent_id
+                    ent_id += 1
 
         for qid, v in q.items():
             cid = qid.split('_')[0]
             c[cid]['history'].append(qid)
+            for p in v['pos']:
+                if p not in self.pos_map:
+                    self.pos_map[p] = pos_id
+                    pos_id += 1
+            for p in v['ent']:
+                if p not in self.ent_map:
+                    self.ent_map[p] = ent_id
+                    ent_id += 1
+
+        for qid, v in r.items():
+            for p in v['pos']:
+                if p not in self.pos_map:
+                    self.pos_map[p] = pos_id
+                    pos_id += 1
+            for p in v['ent']:
+                if p not in self.ent_map:
+                    self.ent_map[p] = ent_id
+                    ent_id += 1
 
         # exclude long sessions
         for cid in self.exclude:
             del c[cid]
 
-        print ('{} conversations loaded'.format(len(c)))
+        # convert pos and ent maps to categorical labels
+        self.pos_map = self.categorical_dict(self.pos_map)
+        self.ent_map = self.categorical_dict(self.ent_map)
+
+        print ('{} {} conversations loaded'.format(len(c), option))
         return (c, q, r)
+
+    def categorical_dict(self, map):
+        values = list(map.values())
+        values = to_categorical(values)
+        index = 0
+        for k, v in map.items():
+            map[k] = values[index]
+            index += 1
+        return map
 
     def join_by_id(self, context, questions, responses, window=3):
         # join data
@@ -82,7 +124,8 @@ class CoQAPreprocessor():
                 test.append(responses[h[-1]]['answer_span'])
         return (train, test)
 
-    def prepare_training(self, c_pad=500, h_pad=100, limit=500):
+    def prepare_training(self, limit=500):
+        c_pad, h_pad = self.c_pad, self.h_pad
         context, questions, responses = self.load_processed_data()
         train, test = self.join_by_id(context, questions, responses, window=3)
         context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
@@ -104,8 +147,14 @@ class CoQAPreprocessor():
 
             # context padding
             context_inputs['context'] = pad_sequences(context_inputs['context'].T, maxlen=c_pad, dtype=float, value=0.0).T
-            context_inputs['context_pos'] = pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0]
-            context_inputs['context_ent'] = pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0]
+            context_inputs['context_pos'] = list(pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
+            context_inputs['context_ent'] = list(pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
+
+            # one hot
+            for x in range(len(context_inputs['context_pos'])):
+                p, e = context_inputs['context_pos'][x], context_inputs['context_ent'][x]
+                context_inputs['context_pos'][x] = self.pos_map[p]
+                context_inputs['context_ent'][x] = self.ent_map[e]
 
             # history inputs
             prev, current = history[0:len(history)-1], history[-1]
@@ -132,10 +181,12 @@ class CoQAPreprocessor():
             c_emb.append(context_map[cid]['context'])
             c_pos.append(context_map[cid]['context_pos'])
             c_ent.append(context_map[cid]['context_ent'])
+
         h_emb, h_pos, h_ent = np.array(h_emb), np.array(h_pos), np.array(h_ent)
         c_emb, c_pos, c_ent = np.array(c_emb), np.array(c_pos), np.array(c_ent)
-        print ('loading {} data finished ...\n'.format(self.option))
-        return (cids, tids, c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, np.array(targets))
+        h_nlp, c_nlp = np.concatenate((h_pos, h_ent), axis=2), np.concatenate((c_pos, c_ent), axis=2)
+        targets = np.array(targets)
+        return (cids, tids, c_emb, c_nlp, h_emb, h_nlp, targets)
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
         history, history_pos, history_ent = [], [], []
@@ -169,8 +220,15 @@ class CoQAPreprocessor():
 
         # history padding
         history = pad_sequences(history.T, maxlen=h_pad, dtype=float).T
-        history_pos = pad_sequences(np.expand_dims(history_pos, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0]
-        history_ent = pad_sequences(np.expand_dims(history_ent, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0]
+        history_pos = list(pad_sequences(np.expand_dims(history_pos, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0])
+        history_ent = list(pad_sequences(np.expand_dims(history_ent, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0])
+
+        # one hot
+        for x in range(len(history_pos)):
+            p, e = history_pos[x], history_ent[x]
+            history_pos[x] = self.pos_map[p]
+            history_ent[x] = self.ent_map[e]
+
         return (history, history_pos, history_ent, span)
 
     def extract_sentences(self, sentences, words):

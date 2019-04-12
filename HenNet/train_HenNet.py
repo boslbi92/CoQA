@@ -1,37 +1,54 @@
+import numpy as np
 from model.model_HenNet import HenNet
-from tqdm import tqdm
-from gensim.models import KeyedVectors
 from keras.preprocessing.sequence import pad_sequences
-from sklearn.model_selection import train_test_split
 from preprocess import CoQAPreprocessor
 from generator import CoQAGenerator
-import numpy as np
+from keras.callbacks import TensorBoard, ModelCheckpoint
+from model.metrics.custom_metrics import monitor_span
 import os, json, argparse, pickle, time
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tensorboard = TensorBoard(log_dir='train_logs/{}'.format(time.time()))
+model_dir = os.getcwd() + '/saved_models/HenNet-{epoch:02d}-{val_loss:.2f}.hdf5'
+checkpoint = ModelCheckpoint(model_dir, monitor='val_loss', save_best_only=True)
 
 def main():
     # argparser
     parser = argparse.ArgumentParser(description='HenNet Trainer')
-    parser.add_argument("-c", help='number of convs to train', type=int, default=250)
     parser.add_argument("-b", help='batch size', type=int, default=100)
+    parser.add_argument("-c", help='context pad size', type=int, default=500)
+    parser.add_argument("-q", help='query pad size', type=int, default=100)
     args = parser.parse_args()
 
-    train_generator = CoQAGenerator(option='dev')
-    dev_generator = CoQAGenerator(option='dev')
-
+    # generator and dev set
+    train_generator = CoQAGenerator(option='train', batch=args.b, c_pad=args.c, h_pad=args.q)
+    dev = CoQAPreprocessor(option='dev', c_pad=args.c, h_pad=args.q)
+    val_cids, val_tids, val_c_emb, val_c_nlp, val_h_emb, val_h_nlp, val_targets = dev.start_pipeline(limit=1000000)
 
     # write ids
-    # print ('writing ids')
-    # with open(os.getcwd() + '/train_logs/dev_ids.txt', 'w') as f:
-    #     for c, d in zip(dev_cids, dev_tids):
-    #         l = str(c) + '\t' + str(d) + '\n'
-    #         f.write(l)
-    # f.close()
+    print ('writing ids')
+    with open(os.getcwd() + '/train_logs/val_ids.txt', 'w') as f:
+        for c, d in zip(val_cids, val_tids):
+            l = str(c) + '\t' + str(d) + '\n'
+            f.write(l)
+    f.close()
+
+    print ('-'*100)
+    print ('context bert dim : {}'.format(val_c_emb.shape))
+    print ('context nlp dim : {}'.format(val_c_nlp.shape))
+    print ('history bert dim : {}'.format(val_h_emb.shape))
+    print ('history nlp dim : {}'.format(val_h_nlp.shape))
+    print ('span dim : {}'.format(val_targets.shape))
+    print ('val turns : {}'.format(len(val_tids)))
+    print ('-'*100)
 
     print('Training HenNet ...\n')
-    hn = HenNet()
+    time.sleep(1.0)
+    hn = HenNet(c_pad=args.c, h_pad=args.q, nlp_dim=val_c_nlp.shape[-1])
     H = hn.build_model()
-    H.fit_generator(train_generator, validation_data=dev_generator, epochs=2, steps_per_epoch=len(train_generator),
-                    shuffle=True, use_multiprocessing=True, workers=2)
+    H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb, val_h_nlp, val_c_nlp], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
+                    shuffle=True, use_multiprocessing=True, workers=4, callbacks=[monitor_span(), checkpoint])
     return
+
 
 main()
