@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils import Sequence
 from collections import Counter
 import os, json, pickle, time, copy
 
-class CoQAPreprocessor():
+class CoQAGenerator(Sequence):
     def __init__(self, option):
         self.option = option
         self.context_len, self.history_len = 0, 0
-        self.c_pad, self.h_pad = 500, 100
+        self.c_pad, self.h_pad = 10, 10
+        self.batch_size, self.num_samples = 50, 0
         self.exclude = []
-        self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.data_path = os.getcwd() + '/data/processed/'
+        self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
+        self.context, self.questions, self.responses = self.load_processed_data()
+        self.train, self.test = self.join_by_id(self.context, self.questions, self.responses, window=3)
 
     def load_embeddings(self):
         path = os.getcwd() + '/data/bert/'
@@ -41,7 +44,7 @@ class CoQAPreprocessor():
             num_words = len(v['word'])
             if self.context_len < num_words:
                 self.context_len = num_words
-            if num_words > self.c_pad:
+            if num_words > 400:
                 self.exclude.append(cid)
 
         for qid, v in q.items():
@@ -82,17 +85,29 @@ class CoQAPreprocessor():
                 test.append(responses[h[-1]]['answer_span'])
         return (train, test)
 
-    def prepare_training(self, c_pad=500, h_pad=100, limit=500):
-        context, questions, responses = self.load_processed_data()
-        train, test = self.join_by_id(context, questions, responses, window=3)
-        context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
+    def __len__(self):
+        n_batch = len(self.train) / self.batch_size
+        return int(n_batch)
 
-        # fill up values
-        print ('preparing training data ...')
+    def __getitem__(self, index, c_pad=500, h_pad=100, limit=500):
+        context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
+        context, questions, responses = self.context, self.questions, self.responses
+        train, test, batch = self.train, self.test, self.batch_size
+
+        start_index = (index * self.batch_size)
+        end_index = ((index + 1) * self.batch_size)
+        self.indices = np.arange(len(train))
+        inds = self.indices[start_index:end_index]
+
+        iteration = min(limit, len(train))
         context_map, targets = {}, []
         h_emb, h_pos, h_ent, cids, tids = [], [], [], [], []
-        iteration = min(limit, len(train))
-        for i in tqdm(range(iteration)):
+        c_emb, c_pos, c_ent = [], [], []
+
+        if end_index >= len(train):
+            end_index = len(train)
+
+        for i in range(start_index, end_index):
             cid, history, tid = train[i][0], train[i][1], train[i][1][-1]
             history_inputs = {'context_id': cid, 'history': [], 'history_pos': [], 'history_ent': []}
             context_inputs = {'context': [], 'context_pos': [], 'context_ent': []}
@@ -123,19 +138,21 @@ class CoQAPreprocessor():
             h_emb.append(history_inputs['history'])
             h_pos.append(history_inputs['history_pos'])
             h_ent.append(history_inputs['history_ent'])
+            context_map[cid] = context_inputs
             cids.append(cid)
             tids.append(tid)
-            context_map[cid] = context_inputs
 
-        c_emb, c_pos, c_ent = [], [], []
+        # context repeat
         for cid in cids:
             c_emb.append(context_map[cid]['context'])
             c_pos.append(context_map[cid]['context_pos'])
             c_ent.append(context_map[cid]['context_ent'])
         h_emb, h_pos, h_ent = np.array(h_emb), np.array(h_pos), np.array(h_ent)
         c_emb, c_pos, c_ent = np.array(c_emb), np.array(c_pos), np.array(c_ent)
-        print ('loading {} data finished ...\n'.format(self.option))
-        return (cids, tids, c_emb, c_pos, c_ent, h_emb, h_pos, h_ent, np.array(targets))
+        targets = np.array(targets)
+        # print (h_emb.shape, c_emb.shape, targets.shape)
+        # print (inds)
+        return [h_emb, c_emb], [targets]
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
         history, history_pos, history_ent = [], [], []
@@ -172,12 +189,3 @@ class CoQAPreprocessor():
         history_pos = pad_sequences(np.expand_dims(history_pos, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0]
         history_ent = pad_sequences(np.expand_dims(history_ent, axis=0), maxlen=h_pad, dtype=object, value='PAD')[0]
         return (history, history_pos, history_ent, span)
-
-    def extract_sentences(self, sentences, words):
-        sents = []
-        for start, end in sentences:
-            sents.append(words[start:end])
-        return sents
-
-    def start_pipeline(self, limit):
-        return self.prepare_training(limit=limit)

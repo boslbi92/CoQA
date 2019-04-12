@@ -14,7 +14,8 @@ import os, time
 class HenNet():
     def __init__(self):
         self.embedding_dim = 1024
-        self.encoding_dim = int(self.embedding_dim / 4)
+        # self.encoding_dim = int(self.embedding_dim / 4)
+        self.encoding_dim = 10
         self.num_passage_words = 500
         self.num_question_words = 100
         self.dropout_rate = 0.2
@@ -22,10 +23,7 @@ class HenNet():
         self.model_dir = os.getcwd() + '/saved_models/HenNet-{epoch:02d}-{val_loss:.3f}.hdf5'
         self.checkpoint = ModelCheckpoint(self.model_dir, monitor='val_loss', save_best_only=True)
 
-    def build_model(self, train_context, train_history, train_span,
-                    dev_context, dev_history, dev_span,
-                    epochs=100, batch=20):
-
+    def build_model(self):
         # PART 1: First we create input layers
         question_input = Input(shape=(self.num_question_words, self.embedding_dim), dtype='float32', name="question_input")
         passage_input = Input(shape=(self.num_passage_words, self.embedding_dim), dtype='float32', name="passage_input")
@@ -96,10 +94,15 @@ class HenNet():
         henNet.compile(optimizer='adadelta', loss=negative_log_span)
         time.sleep(1.0)
         henNet.summary(line_length=175)
-        henNet.fit(x=[train_history, train_context], y=[train_span],
-                   validation_data=([dev_history, dev_context], dev_span),
-                   epochs=epochs, batch_size=batch, shuffle=True,
-                   callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
+        return henNet
+
+        # henNet.fit(x=[train_history, train_context], y=[train_span],
+        #            validation_data=([dev_history, dev_context], dev_span),
+        #            epochs=epochs, batch_size=batch, shuffle=True,
+        #            callbacks=[monitor_span(), self.tensorboard, self.checkpoint])
+
+
+
 
     def _get_custom_objects(self):
         custom_objects = super(HenNet, self)._get_custom_objects()
