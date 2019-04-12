@@ -7,10 +7,11 @@ from collections import Counter
 import os, json, pickle, time, copy
 
 class CoQAGenerator(Sequence):
-    def __init__(self, option, batch, c_pad, h_pad):
+    def __init__(self, option, batch, c_pad, h_pad, bert_path):
         self.option = option
         self.batch_size = batch
         self.c_pad, self.h_pad = c_pad, h_pad
+        self.context_len, self.history_len, self.exclude = 0, 0, []
 
         self.pos_map = {'WP$': 40, 'IN': 10, 'WDT': 14, 'PRP': 25, 'TO': 22, 'LS': 47, 'JJ': 5, 'CD': 17, 'VBP': 30, 'DT': 4,
          'NNS': 21, 'NFP': 44, 'WRB': 24, 'VB': 23, '_SP': 51, 'ADD': 49, 'NN': 7, 'NNPS': 43, 'XX': 46, 'NNP': 2,
@@ -24,15 +25,14 @@ class CoQAGenerator(Sequence):
          'B-DATE': 8, 'B-WORK_OF_ART': 18, 'O': 4, 'I-PERSON': 3, 'I-GPE': 6, 'I-FAC': 36, 'I-LOC': 15, 'I-LAW': 30,
          'B-GPE': 5, 'B-LOC': 14, 'B-LAW': 29, 'B-MONEY': 20, 'B-FAC': 28, 'B-PERCENT': 32, 'B-PERSON': 2, 'PAD': 0}
 
-        self.context_len, self.history_len = 0, 0
-        self.exclude = []
         self.data_path = os.getcwd() + '/data/processed/'
+        self.bert_path = bert_path
         self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.context, self.questions, self.responses = self.load_processed_data()
         self.train, self.test = self.join_by_id(self.context, self.questions, self.responses, window=3)
 
     def load_embeddings(self):
-        path = os.getcwd() + '/data/bert/'
+        path = self.bert_path
         option = self.option
         with open(path + 'context_{}.pickle'.format(option), 'rb') as f:
             context_emb = pickle.load(f)
