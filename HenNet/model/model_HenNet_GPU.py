@@ -73,7 +73,7 @@ class HenNet_GPU():
         # To predict the span word, we pass the output representation through each dense layers without
         # output size 1 (basically a dot product of a vector of weights and the output vectors) + softmax (to get a position)
         # Shape: (batch_size, num_passage_words)
-        span_begin_weights = TimeDistributed(Dense(units=1), name='span_begin_weights')(output_representation)
+        span_begin_weights = TimeDistributed(Dense(units=1, activation='tanh'), name='span_begin_weights')(output_representation)
         span_begin_probabilities = MaskedSoftmax(name="output_begin_probs")(span_begin_weights)
 
         # PART 5-1: Weighted passages by span begin probs
@@ -90,13 +90,13 @@ class HenNet_GPU():
         span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim/2), return_sequences=True), name='span_end_encoder')(span_end_representation)
         span_end_encoder = Dropout(rate=self.dropout_rate, name='drop_span_end_encoder')(span_end_encoder)
         span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
-        span_end_weights = TimeDistributed(Dense(units=1), name='span_end_weights')(span_end_input)
+        span_end_weights = TimeDistributed(Dense(units=1, activation='tanh'), name='span_end_weights')(span_end_input)
         span_end_probabilities = MaskedSoftmax(name="output_end_probs")(span_end_weights)
 
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = RMSprop()
+        opt = RMSprop(clipvalue=5.0)
         henNet = Model(inputs=[question_input, passage_input, question_nlp_input, passage_nlp_input], outputs=[prob_output])
         henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)
