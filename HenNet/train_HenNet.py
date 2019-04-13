@@ -21,7 +21,7 @@ def main():
     parser.add_argument("-q", help='query pad size', type=int, default=100)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
     parser.add_argument("-g", help='GPU mode', type=str, default='False', required=True)
-    parser.add_argument("-d", help='hidden dimension scaling factor', type=int, default=4)
+    parser.add_argument("-d", help='hidden dimension size', type=int, default=256)
     args = parser.parse_args()
 
     # generator and dev set
@@ -29,10 +29,17 @@ def main():
     dev = CoQAPreprocessor(option='dev', c_pad=args.c, h_pad=args.q, bert_path=args.p)
     val_cids, val_tids, val_h_emb, val_c_emb, val_targets = dev.start_pipeline(limit=1000000)
 
+    print ('-'*100)
+    print ('checking input nan values ...')
+    a, b, c = np.isnan(val_h_emb).any(), np.isnan(val_c_emb).any(), np.isnan(val_targets).any()
+    assert a == b == c == False
+    print ('input clean')
+    print ('-'*100)
+
     # write ids
     print ('writing ids')
     with open(os.getcwd() + '/train_logs/val_ids.txt', 'w') as f:
-        f.write('pad dimension : {}'.format(args.c))
+        f.write('pad dimension : {}\n'.format(args.c))
         for c, d in zip(val_cids, val_tids):
             l = str(c) + '\t' + str(d) + '\n'
             f.write(l)
@@ -49,14 +56,14 @@ def main():
     if args.g.lower() == 'false':
         print('Training HenNet on CPU mode...\n')
         time.sleep(1.0)
-        hn = HenNet(c_pad=args.c, h_pad=args.q, hidden_scale=args.d)
+        hn = HenNet(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
     elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
         time.sleep(1.0)
-        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, hidden_scale=args.d)
+        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])

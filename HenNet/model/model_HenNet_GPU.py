@@ -12,9 +12,9 @@ from model.metrics.custom_metrics import monitor_span, negative_log_span
 import os, time
 
 class HenNet_GPU():
-    def __init__(self, c_pad, h_pad, hidden_scale):
+    def __init__(self, c_pad, h_pad, hidden_dim):
         self.embedding_dim = 1113
-        self.encoding_dim = int(self.embedding_dim / hidden_scale)
+        self.encoding_dim = int(hidden_dim / 2 )
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
         self.dropout_rate = 0.3
@@ -89,16 +89,16 @@ class HenNet_GPU():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = Adamax(clipvalue=5.0)
+        opt = Adamax(clipvalue=5.0, lr=0.002)
         henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
-        henNet.compile(optimizer=opt, loss=negative_log_span, metrics=['mae'])
+        henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)
         henNet.summary(line_length=175)
         return henNet
 
 
     def _get_custom_objects(self):
-        custom_objects = super(HenNet, self)._get_custom_objects()
+        custom_objects = super(HenNet_GPU, self)._get_custom_objects()
         custom_objects["ComplexConcat"] = ComplexConcat
         custom_objects["MaskedSoftmax"] = MaskedSoftmax
         custom_objects["MatrixAttention"] = MatrixAttention

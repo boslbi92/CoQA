@@ -190,6 +190,9 @@ class CoQAGenerator(Sequence):
         # print (targets.shape)
         # print (inds, '\n')
 
+        a, b, c = np.isnan(h_emb).any(), np.isnan(c_emb).any(), np.isnan(targets).any()
+        assert a == b == c == False
+
         return [h_emb, c_emb], [targets]
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
