@@ -114,6 +114,8 @@ class CoQAPreprocessor():
         train, test = self.join_by_id(context, questions, responses, window=3)
         context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
 
+        test = context_emb['36w0ob37hwe5i7eo0mew1h7lpagzhc']
+
         # fill up values
         context_map, targets = {}, []
         h_emb, h_pos, h_ent, cids, tids = [], [], [], [], []
