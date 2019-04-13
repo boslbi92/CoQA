@@ -209,9 +209,9 @@ class CoQAGenerator(Sequence):
             print (h_emb.shape, c_emb.shape, targets.shape)
             print (inds)
             print ('\n')
-            for x in c_emb:
-                print (np.isnan(x).any())
-            exit()
+            for x, id in zip(c_emb, cids):
+                print (np.isnan(x).any(), id)
+            assert 1==2
 
         return [h_emb, c_emb], [targets]
 
