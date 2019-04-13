@@ -71,7 +71,7 @@ class SDNetTrainer(BaseTrainer):
             self.load_model(model_path)            
 
         print('Loading train json...')
-        with open(os.path.join(self.opt['FEATURE_FOLDER'], self.data_prefix + 'dev-preprocessed.json'), 'r') as f:
+        with open(os.path.join(self.opt['FEATURE_FOLDER'], self.data_prefix + 'train-preprocessed.json'), 'r') as f:
             train_data = json.load(f)
 
         print('Loading dev json...')
