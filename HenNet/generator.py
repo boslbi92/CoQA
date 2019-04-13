@@ -149,6 +149,17 @@ class CoQAGenerator(Sequence):
             context_inputs['context_pos'] = list(pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
             context_inputs['context_ent'] = list(pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
 
+            a, b, c = np.isnan(context_inputs['context']).any(), np.isnan(context_inputs['context_pos']).any(), np.isnan(context_inputs['context_ent']).any()
+            try:
+                assert a == b == c == False
+            except:
+                print(a, b, c)
+                print(cid)
+                print(tid)
+                print(context_inputs['context'].shape, context_inputs['context_pos'].shape, context_inputs['context_ent'].shape)
+                print(inds)
+                print('\n')
+
             # one hot
             for x in range(len(context_inputs['context_pos'])):
                 p, e = context_inputs['context_pos'][x], context_inputs['context_ent'][x]
