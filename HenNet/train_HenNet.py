@@ -19,14 +19,14 @@ def main():
     parser = argparse.ArgumentParser(description='HenNet Trainer')
     parser.add_argument("-b", help='batch size', type=int, default=32)
     parser.add_argument("-c", help='context pad size', type=int, default=450)
-    parser.add_argument("-q", help='query pad size', type=int, default=75)
+    parser.add_argument("-q", help='query pad size', type=int, default=100)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
-    parser.add_argument("-g", help='GPU mode', type=str, default='False')
+    parser.add_argument("-g", help='GPU mode', type=str, default='false')
     parser.add_argument("-d", help='hidden dimension size', type=int, default=512)
     args = parser.parse_args()
 
     # generator and dev set
-    train_generator = CoQAGenerator(option='dev', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
+    train_generator = CoQAGenerator(option='train', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
     dev = CoQAPreprocessor(option='dev', c_pad=args.c, h_pad=args.q, bert_path=args.p)
     val_cids, val_tids, val_h_emb, val_c_emb, val_targets = dev.start_pipeline(limit=999999)
 
