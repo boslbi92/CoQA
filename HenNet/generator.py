@@ -209,9 +209,9 @@ class CoQAGenerator(Sequence):
             print (h_emb.shape, c_emb.shape, targets.shape)
             print (inds)
             print ('\n')
-            print (h_emb)
-            print (c_emb)
-            print (targets)
+            for x in c_emb:
+                print (np.isnan(x).any())
+            exit()
 
         return [h_emb, c_emb], [targets]
 
