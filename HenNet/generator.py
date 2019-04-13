@@ -196,6 +196,7 @@ class CoQAGenerator(Sequence):
         except:
             print (a,b,c)
             print (h_emb.shape, c_emb.shape, targets.shape)
+            print (inds)
             print ('\n')
             print (h_emb)
             print (c_emb)

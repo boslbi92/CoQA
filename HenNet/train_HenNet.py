@@ -18,9 +18,9 @@ def main():
     parser = argparse.ArgumentParser(description='HenNet Trainer')
     parser.add_argument("-b", help='batch size', type=int, default=32)
     parser.add_argument("-c", help='context pad size', type=int, default=500)
-    parser.add_argument("-q", help='query pad size', type=int, default=100)
+    parser.add_argument("-q", help='query pad size', type=int, default=75)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
-    parser.add_argument("-g", help='GPU mode', type=str, default='False', required=True)
+    parser.add_argument("-g", help='GPU mode', type=str, default='False')
     parser.add_argument("-d", help='hidden dimension size', type=int, default=256)
     args = parser.parse_args()
 
@@ -59,14 +59,14 @@ def main():
         hn = HenNet(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
-                        shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
+                        shuffle=False, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
     elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
         time.sleep(1.0)
         hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
-                        shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
+                        shuffle=False, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint])
 
     return
 
