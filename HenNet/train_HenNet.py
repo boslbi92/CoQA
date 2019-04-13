@@ -25,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     # generator and dev set
-    train_generator = CoQAGenerator(option='dev', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
+    train_generator = CoQAGenerator(option='train', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
     dev = CoQAPreprocessor(option='dev', c_pad=args.c, h_pad=args.q, bert_path=args.p)
     val_cids, val_tids, val_h_emb, val_c_emb, val_targets = dev.start_pipeline(limit=1000000)
 
