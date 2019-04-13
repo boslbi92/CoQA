@@ -149,14 +149,14 @@ class CoQAGenerator(Sequence):
             context_inputs['context_pos'] = list(pad_sequences(np.expand_dims(context_inputs['context_pos'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
             context_inputs['context_ent'] = list(pad_sequences(np.expand_dims(context_inputs['context_ent'], axis=0), maxlen=c_pad, dtype=object, value='PAD')[0])
 
-            a, b, c = np.isnan(context_inputs['context']).any(), np.isnan(context_inputs['context_pos']).any(), np.isnan(context_inputs['context_ent']).any()
+            a, b, c = np.isnan(np.array(context_inputs['context'])).any(), np.isnan(np.array(context_inputs['context_pos'])).any(), np.isnan(np.array(context_inputs['context_ent'])).any()
             try:
                 assert a == b == c == False
             except:
                 print(a, b, c)
                 print(cid)
                 print(tid)
-                print(context_inputs['context'].shape, context_inputs['context_pos'].shape, context_inputs['context_ent'].shape)
+                print(np.array(context_inputs['context']).shape, np.array(context_inputs['context_pos']).shape, np.array(context_inputs['context_ent']).shape)
                 print(inds)
                 print('\n')
 
