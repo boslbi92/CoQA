@@ -59,8 +59,8 @@ class HenNet_GPU():
         # PART 4: Final modelling layer
         final_encoder1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder1')(attention_output)
         final_encoder2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder2')(final_encoder1)
-        final_encoder2 = Dropout(rate=self.dropout_rate, name='drop_final_encoder')(final_encoder2)
         output_representation = Concatenate(name='output_representation')([attention_output, final_encoder2])
+        output_representation = Dropout(rate=self.dropout_rate, name='output_rep_drop')(output_representation)
 
         # PART 5-1: Span prediction layers (begin)
         # To predict the span word, we pass the output representation through each dense layers without
@@ -81,8 +81,8 @@ class HenNet_GPU():
 
         # PART 5-2: Span prediction layers (end)
         span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim/2), return_sequences=True), name='span_end_encoder')(span_end_representation)
-        span_end_encoder = Dropout(rate=self.dropout_rate, name='drop_span_end_encoder')(span_end_encoder)
         span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
+        span_end_input = Dropout(rate=self.dropout_rate, name='span_end_rep_drop')(span_end_input)
         span_end_weights = TimeDistributed(Dense(units=1, activation='tanh'), name='span_end_weights')(span_end_input)
         span_end_probabilities = MaskedSoftmax(name="output_end_probs")(span_end_weights)
 
