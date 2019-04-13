@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description='HenNet Trainer')
     parser.add_argument("-b", help='batch size', type=int, default=32)
     parser.add_argument("-c", help='context pad size', type=int, default=450)
-    parser.add_argument("-q", help='query pad size', type=int, default=100)
+    parser.add_argument("-q", help='query pad size', type=int, default=75)
     parser.add_argument("-p", help='bert embedding directory', type=str, default=(os.getcwd()+'/data/bert/'))
     parser.add_argument("-g", help='GPU mode', type=str, default='false')
     parser.add_argument("-d", help='hidden dimension size', type=int, default=512)

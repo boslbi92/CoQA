@@ -5,7 +5,7 @@ from keras import backend as K
 from keras.callbacks import Callback
 
 # predict the most likely span
-def get_best_span(span_begin_probs, span_end_probs, threshold=30):
+def get_best_span(span_begin_probs, span_end_probs, threshold=15):
     if len(span_begin_probs.shape) > 2 or len(span_end_probs.shape) > 2:
         raise ValueError("Input shapes must be (X,) or (1,X)")
     if len(span_begin_probs.shape) == 2:
