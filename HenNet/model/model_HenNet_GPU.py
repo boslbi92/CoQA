@@ -54,7 +54,7 @@ class HenNet_GPU():
         # Repeats question/passage vector for every word in the passage, and uses as an additional input to the hidden layers above.
         # Shape: (batch_size, num_passage_words, embedding_dim * 4)
         tiled_q2c_vectors = RepeatLike(axis=1, copy_from_axis=1, name="q2c_attention")([q2c_vectors, encoded_passage])
-        attention_output = ComplexConcat(combination='1,2,1*2,1*3,4', name='attention_output')([encoded_passage, c2q_vectors, tiled_q2c_vectors])
+        attention_output = ComplexConcat(combination='1,2,1*2,1*3', name='attention_output')([encoded_passage, c2q_vectors, tiled_q2c_vectors])
 
         # PART 4: Final modelling layer
         final_encoder1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder1')(attention_output)
