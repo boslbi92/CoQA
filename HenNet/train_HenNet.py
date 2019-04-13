@@ -32,6 +32,7 @@ def main():
     # write ids
     print ('writing ids')
     with open(os.getcwd() + '/train_logs/val_ids.txt', 'w') as f:
+        f.write('pad dimension : {}'.format(args.c))
         for c, d in zip(val_cids, val_tids):
             l = str(c) + '\t' + str(d) + '\n'
             f.write(l)
