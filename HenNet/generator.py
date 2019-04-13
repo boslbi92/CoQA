@@ -182,7 +182,7 @@ class CoQAGenerator(Sequence):
             c_ent.append(context_map[cid]['context_ent'])
         h_emb, h_pos, h_ent = np.array(h_emb), np.array(h_pos), np.array(h_ent)
         c_emb, c_pos, c_ent = np.array(c_emb), np.array(c_pos), np.array(c_ent)
-        h_nlp, c_nlp = np.concatenate((h_pos, h_ent), axis=2), np.concatenate((c_pos, c_ent), axis=2)
+        h_emb, c_emb = np.concatenate((h_emb, h_pos, h_ent), axis=2), np.concatenate((c_emb, c_pos, c_ent), axis=2)
         targets = np.array(targets)
 
         # print (h_emb.shape, h_pos.shape, h_ent.shape)
@@ -190,7 +190,7 @@ class CoQAGenerator(Sequence):
         # print (targets.shape)
         # print (inds, '\n')
 
-        return [h_emb, c_emb, h_nlp, c_nlp], [targets]
+        return [h_emb, c_emb], [targets]
 
     def generate_history_sequence(self, prev, current, questions, responses, h_pad):
         history, history_pos, history_ent = [], [], []

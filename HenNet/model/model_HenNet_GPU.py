@@ -5,19 +5,18 @@ from keras import Model, optimizers
 from keras.regularizers import l2
 from keras.layers import Input, Embedding, Dense, Concatenate, TimeDistributed, Reshape
 from keras.layers import LSTM, GRU, Bidirectional, Dropout, Add, CuDNNGRU
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Adamax
 from model.layers.attention import MatrixAttention, WeightedSum, MaskedSoftmax
 from model.layers.backend import Max, Repeat, RepeatLike, ComplexConcat, StackProbs
 from model.metrics.custom_metrics import monitor_span, negative_log_span
 import os, time
 
 class HenNet_GPU():
-    def __init__(self, c_pad, h_pad, nlp_dim, hidden_scale):
+    def __init__(self, c_pad, h_pad, hidden_scale):
         self.embedding_dim = 1024
         self.encoding_dim = int(self.embedding_dim / hidden_scale)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
-        self.nlp_dim = nlp_dim
         self.dropout_rate = 0.3
 
     def build_model(self):
@@ -26,8 +25,6 @@ class HenNet_GPU():
         # PART 1: First we create input layers
         question_input = Input(shape=(self.num_question_words, self.embedding_dim), dtype='float32', name="question_input")
         passage_input = Input(shape=(self.num_passage_words, self.embedding_dim), dtype='float32', name="passage_input")
-        question_nlp_input = Input(shape=(self.num_question_words, self.nlp_dim), dtype='float32', name="question_nlp_input")
-        passage_nlp_input = Input(shape=(self.num_passage_words, self.nlp_dim), dtype='float32', name="passage_nlp_input")
 
         # PART 2: Build encoders
         # Shape: (batch_size, #words, embedding_dim)
@@ -37,13 +34,9 @@ class HenNet_GPU():
         encoded_passage_2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_encoder2')(encoded_passage_1)
         encoded_passage = Add(name='sum_passage_encoder')([encoded_passage_1, encoded_passage_2])
 
-        encoded_question_nlp = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='question_nlp_encoder')(question_nlp_input)
-        encoded_passage_nlp = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_nlp_encoder')(passage_nlp_input)
-
         # PART 3: Now we compute a similarity between the passage words and the question words
         # Shape: (batch_size, num_passage_words, num_question_words)
-        matrix_attention = MatrixAttention(similarity_function='bilinear', name='similarity_matrix')([encoded_passage, encoded_question])
-        matrix_attention_nlp = MatrixAttention(similarity_function='bilinear', name='similarity_matrix_nlp')([encoded_passage_nlp, encoded_question_nlp])
+        matrix_attention = MatrixAttention(similarity_function='dot', name='similarity_matrix')([encoded_passage, encoded_question])
 
         # PART 3-1: Context-to-query (c2q) attention (normalized over question)
         # Shape: (batch_size, num_passage_words, embedding_dim)
@@ -61,7 +54,7 @@ class HenNet_GPU():
         # Repeats question/passage vector for every word in the passage, and uses as an additional input to the hidden layers above.
         # Shape: (batch_size, num_passage_words, embedding_dim * 4)
         tiled_q2c_vectors = RepeatLike(axis=1, copy_from_axis=1, name="q2c_attention")([q2c_vectors, encoded_passage])
-        attention_output = ComplexConcat(combination='1,2,1*2,1*3,4', name='attention_output')([encoded_passage, c2q_vectors, tiled_q2c_vectors, matrix_attention_nlp])
+        attention_output = ComplexConcat(combination='1,2,1*2,1*3,4', name='attention_output')([encoded_passage, c2q_vectors, tiled_q2c_vectors])
 
         # PART 4: Final modelling layer
         final_encoder1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder1')(attention_output)
@@ -96,9 +89,9 @@ class HenNet_GPU():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = RMSprop(clipvalue=5.0)
-        henNet = Model(inputs=[question_input, passage_input, question_nlp_input, passage_nlp_input], outputs=[prob_output])
-        henNet.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['mse'])
+        opt = Adamax(clipvalue=5.0)
+        henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
+        henNet.compile(optimizer=opt, loss=negative_log_span, metrics=['mae'])
         time.sleep(1.0)
         henNet.summary(line_length=175)
         return henNet
