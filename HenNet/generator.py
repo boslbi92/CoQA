@@ -211,7 +211,6 @@ class CoQAGenerator(Sequence):
             print ('\n')
             for x, id in zip(c_emb, cids):
                 print (np.isnan(x).any(), id)
-            assert 1==2
 
         return [h_emb, c_emb], [targets]
 
