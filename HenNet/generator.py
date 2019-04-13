@@ -196,21 +196,9 @@ class CoQAGenerator(Sequence):
         h_emb, c_emb = np.concatenate((h_emb, h_pos, h_ent), axis=2), np.concatenate((c_emb, c_pos, c_ent), axis=2)
         targets = np.array(targets)
 
-        # print (h_emb.shape, h_pos.shape, h_ent.shape)
-        # print (c_emb.shape, c_pos.shape, c_ent.shape)
-        # print (targets.shape)
-        # print (inds, '\n')
-
+        # sanity check
         a, b, c = np.isnan(h_emb).any(), np.isnan(c_emb).any(), np.isnan(targets).any()
-        try:
-            assert a == b == c == False
-        except:
-            print (a,b,c)
-            print (h_emb.shape, c_emb.shape, targets.shape)
-            print (inds)
-            print ('\n')
-            for x, id in zip(c_emb, cids):
-                print (np.isnan(x).any(), id)
+        assert a == b == c == False
 
         return [h_emb, c_emb], [targets]
 
