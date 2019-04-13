@@ -191,7 +191,15 @@ class CoQAGenerator(Sequence):
         # print (inds, '\n')
 
         a, b, c = np.isnan(h_emb).any(), np.isnan(c_emb).any(), np.isnan(targets).any()
-        assert a == b == c == False
+        try:
+            assert a == b == c == False
+        except:
+            print (a,b,c)
+            print (h_emb.shape, c_emb.shape, targets.shape)
+            print ('\n')
+            print (h_emb)
+            print (c_emb)
+            print (targets)
 
         return [h_emb, c_emb], [targets]
 
