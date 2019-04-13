@@ -81,7 +81,7 @@ class CoQAPreprocessor():
             index += 1
         return map
 
-    def join_by_id(self, context, questions, responses, window=3):
+    def join_by_id(self, context, questions, responses, window=4):
         # join data
         for context_id, v in context.items():
             if len(v['history']) <= 1:
@@ -111,7 +111,7 @@ class CoQAPreprocessor():
     def prepare_training(self, limit=500):
         c_pad, h_pad = self.c_pad, self.h_pad
         context, questions, responses = self.load_processed_data()
-        train, test = self.join_by_id(context, questions, responses, window=3)
+        train, test = self.join_by_id(context, questions, responses, window=4)
         context_emb, questions_emb, responses_emb = self.context_emb, self.questions_emb, self.responses_emb
 
         # fill up values

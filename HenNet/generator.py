@@ -29,7 +29,7 @@ class CoQAGenerator(Sequence):
         self.bert_path = bert_path
         self.context_emb, self.questions_emb, self.responses_emb = self.load_embeddings()
         self.context, self.questions, self.responses = self.load_processed_data()
-        self.train, self.test = self.join_by_id(self.context, self.questions, self.responses, window=3)
+        self.train, self.test = self.join_by_id(self.context, self.questions, self.responses, window=4)
 
     def load_embeddings(self):
         path = self.bert_path
@@ -84,7 +84,7 @@ class CoQAGenerator(Sequence):
             index += 1
         return map
 
-    def join_by_id(self, context, questions, responses, window=3):
+    def join_by_id(self, context, questions, responses, window=4):
         # join data
         for context_id, v in context.items():
             if len(v['history']) <= 1:

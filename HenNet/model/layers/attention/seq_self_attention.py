@@ -1,17 +1,16 @@
 import keras
 import keras.backend as K
 import tensorflow as tf
+from model.layers import MaskedLayer
 
-
-class SeqSelfAttention(keras.layers.Layer):
-
+class SeqSelfAttention(MaskedLayer):
     ATTENTION_TYPE_ADD = 'additive'
     ATTENTION_TYPE_MUL = 'multiplicative'
 
     def __init__(self,
                  units=32,
                  attention_width=None,
-                 attention_type=ATTENTION_TYPE_ADD,
+                 attention_type=ATTENTION_TYPE_MUL,
                  return_attention=False,
                  history_only=False,
                  kernel_initializer='glorot_normal',
@@ -25,6 +24,7 @@ class SeqSelfAttention(keras.layers.Layer):
                  attention_activation=None,
                  attention_regularizer_weight=0.0,
                  **kwargs):
+
         """Layer initialization.
 
         For additive attention, see: https://arxiv.org/pdf/1806.01264.pdf
@@ -47,6 +47,7 @@ class SeqSelfAttention(keras.layers.Layer):
         :param attention_regularizer_weight: The weights of attention regularizer.
         :param kwargs: Parameters for parent class.
         """
+
         self.supports_masking = True
         self.units = units
         self.attention_width = attention_width
