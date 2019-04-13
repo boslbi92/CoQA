@@ -13,7 +13,7 @@ import os, time
 
 class HenNet_GPU():
     def __init__(self, c_pad, h_pad, hidden_scale):
-        self.embedding_dim = 1024
+        self.embedding_dim = 1113
         self.encoding_dim = int(self.embedding_dim / hidden_scale)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
