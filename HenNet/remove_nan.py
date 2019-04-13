@@ -1,9 +1,10 @@
 import numpy as np
-import os, pickle
+import os, pickle, argparse
 from tqdm import tqdm
 
-def clean_bert(option):
-    option, path = option, os.getcwd()+'/data/bert/'
+def clean_bert(option, path):
+    print ('cleanup start')
+
     with open(path + 'context_{}.pickle'.format(option), 'rb') as f:
         context_emb = pickle.load(f)
     with open(path + 'questions_{}.pickle'.format(option), 'rb') as f:
@@ -45,4 +46,10 @@ def clean_bert(option):
     print ('cleanup done!')
     return
 
-clean_bert(option='train')
+def main():
+    parser = argparse.ArgumentParser(description='Bert cleanup')
+    parser.add_argument("-p", help='bert embedding directory', type=str, required=True)
+    args = parser.parse_args()
+    clean_bert(option='train', path=args.p)
+
+main()
