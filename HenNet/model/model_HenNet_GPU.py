@@ -98,7 +98,7 @@ class HenNet_GPU():
         # Model hyperparams
         opt = RMSprop(clipvalue=5.0)
         henNet = Model(inputs=[question_input, passage_input, question_nlp_input, passage_nlp_input], outputs=[prob_output])
-        henNet.compile(optimizer=opt, loss=negative_log_span, metrics=['mse'])
+        henNet.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['mse'])
         time.sleep(1.0)
         henNet.summary(line_length=175)
         return henNet
