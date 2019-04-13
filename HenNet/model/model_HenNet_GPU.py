@@ -14,7 +14,7 @@ import os, time
 class HenNet_GPU():
     def __init__(self, c_pad, h_pad, hidden_dim):
         self.embedding_dim = 1113
-        self.encoding_dim = int(hidden_dim / 2 )
+        self.encoding_dim = int(hidden_dim / 2)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
         self.dropout_rate = 0.3
@@ -36,7 +36,7 @@ class HenNet_GPU():
 
         # PART 3: Now we compute a similarity between the passage words and the question words
         # Shape: (batch_size, num_passage_words, num_question_words)
-        matrix_attention = MatrixAttention(similarity_function='dot', name='similarity_matrix')([encoded_passage, encoded_question])
+        matrix_attention = MatrixAttention(similarity_function='bilinear', name='similarity_matrix')([encoded_passage, encoded_question])
 
         # PART 3-1: Context-to-query (c2q) attention (normalized over question)
         # Shape: (batch_size, num_passage_words, embedding_dim)
