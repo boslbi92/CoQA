@@ -17,7 +17,7 @@ class HenNet_GPU2():
         self.encoding_dim = int(hidden_dim / 2)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
-        self.dropout_rate = 0.5
+        self.dropout_rate = 0.3
 
     def build_model(self):
         encoding_dim = self.encoding_dim
@@ -28,10 +28,12 @@ class HenNet_GPU2():
 
         # PART 2: Build encoders
         encoded_question_1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='question_encoder_1')(question_input)
+        encoded_question_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_question')(encoded_question_1)
         encoded_question_2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='question_encoder_2')(encoded_question_1)
         encoded_question = Add(name='sum_question_encoder')([encoded_question_1, encoded_question_2])
 
         encoded_passage_1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_encoder1')(passage_input)
+        encoded_passage_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_passage')(encoded_passage_1)
         encoded_passage_2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_encoder2')(encoded_passage_1)
         encoded_passage = Add(name='sum_passage_encoder')([encoded_passage_1, encoded_passage_2])
 
@@ -51,18 +53,13 @@ class HenNet_GPU2():
         tiled_q2c_vectors = RepeatLike(axis=1, copy_from_axis=1, name="q2c_attention")([q2c_vectors, encoded_passage])
         attention_output = ComplexConcat(combination='1,2,1*2,1*3', name='attention_output')([encoded_passage, c2q_vectors, tiled_q2c_vectors])
 
-        # PART 4: Context modelling layer
-        final_context_encoder = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_context_encoder')(attention_output)
-        context_self_attention1 = SeqSelfAttention(units=self.encoding_dim, attention_type='multiplicative', attention_activation='tanh', name='context_self_attention1')(final_context_encoder)
-        context_self_attention2 = SeqSelfAttention(units=self.encoding_dim, attention_type='multiplicative', attention_activation='tanh', name='context_self_attention2')(context_self_attention1)
+        # PART 4: Final modelling layer
+        final_encoder1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder1')(attention_output)
+        final_encoder1 = SeqSelfAttention(attention_activation='tanh', name='self_attention')(final_encoder1)
+        final_encoder2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder2')(final_encoder1)
+        final_encoder2 = Add(name='sum_final_encoder')([final_encoder1, final_encoder2])
 
-        # PART 4-1: History modelling layer with self attention
-        history_self_attention1 = SeqSelfAttention(units=self.encoding_dim, attention_type='multiplicative', attention_activation='tanh', name='history_self_attention1')(encoded_question)
-        history_self_attention2 = SeqSelfAttention(units=self.encoding_dim, attention_type='multiplicative', attention_activation='tanh', name='history_self_attention2')(history_self_attention1)
-        self_attention_matrix = MatrixAttention(similarity_function='bilinear', name='self_attention_matrix')([context_self_attention2, history_self_attention2])
-
-        # PART 4-2: Final representation with dropout
-        output_representation = Concatenate(name='output_representation')([context_self_attention2, self_attention_matrix])
+        output_representation = Concatenate(name='output_representation')([attention_output, final_encoder2])
         output_representation = Dropout(rate=self.dropout_rate, name='output_rep_drop')(output_representation)
 
         # PART 5-1: Span prediction layers (begin)
@@ -72,12 +69,13 @@ class HenNet_GPU2():
         # PART 5-1: Weighted passages by span begin probs
         sum_layer = WeightedSum(name="weighted_passages", use_masking=False)
         repeat_layer = RepeatLike(axis=1, copy_from_axis=1, name='tiled_weighted_passages')
-        weighted_passages = repeat_layer([sum_layer([context_self_attention2, span_begin_probabilities]), encoded_passage])
-        span_end_representation = ComplexConcat(combination="1,2", name='span_end_representation')([output_representation, weighted_passages])
+        weighted_passages = repeat_layer([sum_layer([final_encoder2, span_begin_probabilities]), encoded_passage])
+        span_end_representation = ComplexConcat(combination="1,2,3,2*3")([attention_output, final_encoder2, weighted_passages])
 
         # PART 5-2: Span prediction layers (end)
-        span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim), return_sequences=True), name='span_end_encoder')(span_end_representation)
-        span_end_input = Dropout(rate=self.dropout_rate, name='span_end_rep_drop')(span_end_encoder)
+        span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim / 2), return_sequences=True),name='span_end_encoder')(span_end_representation)
+        span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
+        span_end_input = Dropout(rate=self.dropout_rate, name='span_end_rep_drop')(span_end_input)
         span_end_weights = TimeDistributed(Dense(units=1, activation='tanh'), name='span_end_weights')(span_end_input)
         span_end_probabilities = MaskedSoftmax(name="output_end_probs")(span_end_weights)
 
@@ -85,7 +83,7 @@ class HenNet_GPU2():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = Adamax(clipvalue=5.0, lr=0.002, epsilon=0.1)
+        opt = RMSprop(clipvalue=10.0, epsilon=0.1)
         henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
         henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)

@@ -1,6 +1,5 @@
 import numpy as np
-from model.model_HenNet2 import HenNet2
-from model.model_HenNet_GPU import HenNet_GPU
+from model.model_HenNet import HenNet
 from model.model_HenNet_GPU2 import HenNet_GPU2
 from keras.preprocessing.sequence import pad_sequences
 from preprocess import CoQAPreprocessor
@@ -26,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     # generator and dev set
-    train_generator = CoQAGenerator(option='train', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
+    train_generator = CoQAGenerator(option='dev', batch=args.b, c_pad=args.c, h_pad=args.q, bert_path=args.p)
     dev = CoQAPreprocessor(option='dev', c_pad=args.c, h_pad=args.q, bert_path=args.p)
     val_cids, val_tids, val_h_emb, val_c_emb, val_targets = dev.start_pipeline(limit=999999)
 
@@ -57,13 +56,13 @@ def main():
     time.sleep(1.0)
     if args.g.lower() == 'false':
         print('Training HenNet on CPU mode...\n')
-        hn = HenNet2(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
+        hn = HenNet(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint, tensorboard])
     elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
-        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
+        hn = HenNet_GPU2(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint, tensorboard])

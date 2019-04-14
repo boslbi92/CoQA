@@ -10,7 +10,7 @@ class SeqSelfAttention(MaskedLayer):
     def __init__(self,
                  units=32,
                  attention_width=None,
-                 attention_type=ATTENTION_TYPE_MUL,
+                 attention_type=ATTENTION_TYPE_ADD,
                  return_attention=False,
                  history_only=False,
                  kernel_initializer='glorot_normal',
