@@ -73,9 +73,9 @@ def negative_log_span(y_true, y_pred):
     pred_start, pred_end = y_pred[:,0,:], y_pred[:,1,:]
     true_start, true_end = K.cast(K.argmax(y_true[:,0,:], axis=1), dtype='int32'), K.cast(K.argmax(y_true[:,1,:], axis=1), dtype='int32')
 
-    pred_start_best = K.cast(K.argmax(pred_start, axis=1), dtype='int32')
-    pred_end_best = K.cast(K.argmax(pred_end, axis=1), dtype='int32')
-    span_difference = K.cast(K.abs(pred_end_best - pred_start_best), dtype='float32')
+    # pred_start_best = K.cast(K.argmax(pred_start, axis=1), dtype='int32')
+    # pred_end_best = K.cast(K.argmax(pred_end, axis=1), dtype='int32')
+    # span_difference = K.cast(K.abs(pred_end_best - pred_start_best), dtype='float32')
 
     # debugging
     # pred_start = tf.Print(pred_start, [K.shape(pred_start), pred_start_best, pred_end_best], "pred_start_info")
