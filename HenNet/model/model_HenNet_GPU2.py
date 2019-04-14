@@ -73,7 +73,7 @@ class HenNet_GPU2():
         span_end_representation = ComplexConcat(combination="1,2,3,2*3")([attention_output, final_encoder2, weighted_passages])
 
         # PART 5-2: Span prediction layers (end)
-        span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim / 2), return_sequences=True),name='span_end_encoder')(span_end_representation)
+        span_end_encoder = Bidirectional(CuDNNGRU(int(encoding_dim), return_sequences=True),name='span_end_encoder')(span_end_representation)
         span_end_input = Concatenate(name='span_end_representation')([attention_output, span_end_encoder])
         span_end_input = Dropout(rate=self.dropout_rate, name='span_end_rep_drop')(span_end_input)
         span_end_weights = TimeDistributed(Dense(units=1, activation='tanh'), name='span_end_weights')(span_end_input)
