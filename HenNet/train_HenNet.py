@@ -63,7 +63,7 @@ def main():
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint, tensorboard])
     elif args.g.lower() == 'true':
         print('Training HenNet on GPU mode ...\n')
-        hn = HenNet_GPU2(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
+        hn = HenNet_GPU(c_pad=args.c, h_pad=args.q, hidden_dim=args.d)
         H = hn.build_model()
         H.fit_generator(train_generator, validation_data=([val_h_emb, val_c_emb], [val_targets]), epochs=50, steps_per_epoch=len(train_generator),
                         shuffle=True, use_multiprocessing=True, workers=6, callbacks=[monitor_span(), checkpoint, tensorboard])
