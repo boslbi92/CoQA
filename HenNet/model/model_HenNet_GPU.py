@@ -91,7 +91,7 @@ class HenNet_GPU():
         # Model hyperparams
         opt = Adamax(clipvalue=5.0, lr=0.002)
         henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
-        henNet.compile(optimizer=opt, loss=negative_log_span)
+        henNet.compile(optimizer=opt, loss='categorical_crossentropy')
         time.sleep(1.0)
         henNet.summary(line_length=175)
         return henNet
