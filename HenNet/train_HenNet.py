@@ -1,6 +1,6 @@
 import numpy as np
 from model.model_HenNet import HenNet
-from model.model_HenNet_GPU2 import HenNet_GPU2
+from model.model_HenNet_GPU import HenNet_GPU
 from keras.preprocessing.sequence import pad_sequences
 from preprocess import CoQAPreprocessor
 from generator import CoQAGenerator

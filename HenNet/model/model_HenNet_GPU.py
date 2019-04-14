@@ -17,7 +17,7 @@ class HenNet_GPU():
         self.encoding_dim = int(hidden_dim / 2)
         self.num_passage_words = c_pad
         self.num_question_words = h_pad
-        self.dropout_rate = 0.3
+        self.dropout_rate = 0.25
 
     def build_model(self):
         encoding_dim = self.encoding_dim
@@ -36,7 +36,7 @@ class HenNet_GPU():
         encoded_passage = Add(name='sum_passage_encoder')([encoded_passage_1, encoded_passage_2])
 
         # PART 3: Now we compute a similarity between the passage words and the question words
-        matrix_attention = MatrixAttention(similarity_function='bilinear', name='similarity_matrix')([encoded_passage, encoded_question])
+        matrix_attention = MatrixAttention(similarity_function='dot', name='similarity_matrix')([encoded_passage, encoded_question])
 
         # PART 3-1: Context-to-query (c2q) attention (normalized over question)
         passage_question_attention = MaskedSoftmax(name='normalize_c2q')(matrix_attention)
@@ -82,7 +82,7 @@ class HenNet_GPU():
         prob_output = StackProbs(name='final_span_outputs')([span_begin_probabilities, span_end_probabilities])
 
         # Model hyperparams
-        opt = Adamax(clipvalue=5.0, lr=0.002)
+        opt = Adamax(clipvalue=5.0, lr=0.003)
         henNet = Model(inputs=[question_input, passage_input], outputs=[prob_output])
         henNet.compile(optimizer=opt, loss=negative_log_span)
         time.sleep(1.0)
