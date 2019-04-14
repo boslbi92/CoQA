@@ -28,12 +28,12 @@ class HenNet_GPU2():
 
         # PART 2: Build encoders
         encoded_question_1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='question_encoder_1')(question_input)
-        encoded_question_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_question')(encoded_question_1)
+        # encoded_question_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_question')(encoded_question_1)
         encoded_question_2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='question_encoder_2')(encoded_question_1)
         encoded_question = Add(name='sum_question_encoder')([encoded_question_1, encoded_question_2])
 
         encoded_passage_1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_encoder1')(passage_input)
-        encoded_passage_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_passage')(encoded_passage_1)
+        # encoded_passage_1 = SeqSelfAttention(attention_activation='tanh', name='self_attention_passage')(encoded_passage_1)
         encoded_passage_2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='passage_encoder2')(encoded_passage_1)
         encoded_passage = Add(name='sum_passage_encoder')([encoded_passage_1, encoded_passage_2])
 
@@ -55,7 +55,7 @@ class HenNet_GPU2():
 
         # PART 4: Final modelling layer
         final_encoder1 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder1')(attention_output)
-        final_encoder1 = SeqSelfAttention(attention_activation='tanh', name='self_attention')(final_encoder1)
+        # final_encoder1 = SeqSelfAttention(attention_activation='tanh', name='self_attention')(final_encoder1)
         final_encoder2 = Bidirectional(CuDNNGRU(encoding_dim, return_sequences=True), name='final_encoder2')(final_encoder1)
         final_encoder2 = Add(name='sum_final_encoder')([final_encoder1, final_encoder2])
 
