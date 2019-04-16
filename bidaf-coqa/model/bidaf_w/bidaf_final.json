@@ -1,4 +1,3 @@
-
 {
   "dataset_reader": {
     "type": "coqa-squad-plus",
@@ -81,7 +80,7 @@
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["passage", "num_tokens"], ["question", "num_tokens"]],
-    "batch_size": 16
+    "batch_size": 32
   },
 
   "trainer": {
