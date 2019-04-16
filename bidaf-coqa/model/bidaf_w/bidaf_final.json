@@ -27,7 +27,7 @@
                 "type": "embedding",
                 "pretrained_file": "/aut/proj/ir/jasonc/octiron/embeddings/glove.840B.300d.txt",
                 "embedding_dim": 300,
-                "trainable": false
+                "trainable": true
             },
             "token_characters": {
                 "type": "character_encoding",
@@ -50,7 +50,7 @@
       "type": "lstm",
       "bidirectional": true,
       "input_size": 400,
-      "hidden_size": 100,
+      "hidden_size": 200,
       "num_layers": 1,
       "dropout": 0.2
     },
