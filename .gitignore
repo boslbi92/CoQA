@@ -29,4 +29,6 @@ deep-qa/*
 HenNet/data/*
 HenNet/embeddings/*
 HenNet/train_logs/*
-HenNet/saved_models/*.hdf5
+HenNet/saved_models/*
+
+bidaf-coqa/saved_models/*
