@@ -63,7 +63,7 @@
     "modeling_layer": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 800,
+      "input_size": 1600,
       "hidden_size": 300,
       "num_layers": 2,
       "dropout": 0.2
