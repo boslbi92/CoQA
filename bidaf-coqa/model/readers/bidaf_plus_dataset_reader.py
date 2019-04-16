@@ -59,7 +59,7 @@ class SquadReaderPlus(DatasetReader):
             dataset_json = json.load(dataset_file)
             dataset = dataset_json['data']
         logger.info("Reading the dataset")
-        for paragraph_json in dataset[0:500]:
+        for paragraph_json in dataset[0:30]:
             paragraph = paragraph_json["story"]
             # paragraph = paragraph_json["story"].strip().replace("\n", "")
             n_paragraph, padding = self.delete_leading_tokens_of_paragraph(paragraph)
