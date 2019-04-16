@@ -24,9 +24,9 @@
         "token_embedders": {
             "tokens": {
                 "type": "embedding",
-                "pretrained_file": "/aut/proj/ir/jasonc/octiron/embeddings/glove.840B.300d.txt",
-                "embedding_dim": 300,
-                "trainable": true
+                "pretrained_file": "/aut/proj/ir/jasonc/octiron/embeddings/glove.6B.100d.txt",
+                "embedding_dim": 100,
+                "trainable": false
             },
             "token_characters": {
                 "type": "character_encoding",
@@ -48,7 +48,7 @@
     "phrase_layer": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 400,
+      "input_size": 200,
       "hidden_size": 100,
       "num_layers": 1,
       "dropout": 0.2
@@ -80,13 +80,13 @@
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["passage", "num_tokens"], ["question", "num_tokens"]],
-    "batch_size": 32
+    "batch_size": 16
   },
 
   "trainer": {
-    "num_epochs": 20,
+    "num_epochs": 12,
     "grad_norm": 5.0,
-    "patience": 10,
+    "patience": 3,
     "validation_metric": "+em",
     "cuda_device": 0,
     "learning_rate_scheduler": {
@@ -97,7 +97,7 @@
     },
     "optimizer": {
       "type": "adam",
-      "betas": [0.9, 0.9]
+      "betas": [0.9, 0.999]
     }
   }
 }
