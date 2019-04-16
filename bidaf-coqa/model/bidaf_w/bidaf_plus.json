@@ -25,7 +25,7 @@
         "token_embedders": {
             "tokens": {
                 "type": "embedding",
-                "pretrained_file": "/home/jasonc/research/CoQA/bidaf-coqa/model/data/glove.6B.100d.txt",
+                "pretrained_file": "/aut/proj/ir/jasonc/octiron/embeddings/glove.840B.300d.txt",
                 "embedding_dim": 300,
                 "trainable": true
             },
