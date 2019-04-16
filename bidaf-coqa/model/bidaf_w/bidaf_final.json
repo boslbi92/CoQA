@@ -50,7 +50,7 @@
       "type": "lstm",
       "bidirectional": true,
       "input_size": 400,
-      "hidden_size": 200,
+      "hidden_size": 150,
       "num_layers": 1,
       "dropout": 0.2
     },
@@ -64,14 +64,14 @@
       "type": "lstm",
       "bidirectional": true,
       "input_size": 1600,
-      "hidden_size": 200,
+      "hidden_size": 150,
       "num_layers": 2,
       "dropout": 0.2
     },
     "span_end_encoder": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 1400,
+      "input_size": 2500,
       "hidden_size": 150,
       "num_layers": 1,
       "dropout": 0.2
@@ -81,7 +81,7 @@
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["passage", "num_tokens"], ["question", "num_tokens"]],
-    "batch_size": 16
+    "batch_size": 32
   },
 
   "trainer": {
