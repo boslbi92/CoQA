@@ -63,7 +63,7 @@
     "modeling_layer": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 1600,
+      "input_size": 1200,
       "hidden_size": 150,
       "num_layers": 2,
       "dropout": 0.2
@@ -71,7 +71,7 @@
     "span_end_encoder": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 2500,
+      "input_size": 2100,
       "hidden_size": 150,
       "num_layers": 1,
       "dropout": 0.2
