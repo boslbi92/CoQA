@@ -31,4 +31,6 @@ HenNet/embeddings/*
 HenNet/train_logs/*
 HenNet/saved_models/*
 
+
 bidaf-coqa/saved_models/*
+bidaf-coqa/model/data/*

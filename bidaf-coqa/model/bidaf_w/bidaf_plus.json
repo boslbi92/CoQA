@@ -26,8 +26,8 @@
             "tokens": {
                 "type": "embedding",
                 "pretrained_file": "/home/jasonc/research/CoQA/bidaf-coqa/model/data/glove.6B.100d.txt",
-                "embedding_dim": 100,
-                "trainable": false
+                "embedding_dim": 300,
+                "trainable": true
             },
             "token_characters": {
                 "type": "character_encoding",
@@ -64,7 +64,7 @@
       "type": "lstm",
       "bidirectional": true,
       "input_size": 800,
-      "hidden_size": 100,
+      "hidden_size": 256,
       "num_layers": 2,
       "dropout": 0.2
     },
@@ -72,7 +72,7 @@
       "type": "lstm",
       "bidirectional": true,
       "input_size": 1400,
-      "hidden_size": 100,
+      "hidden_size": 256,
       "num_layers": 1,
       "dropout": 0.2
     },
@@ -89,7 +89,7 @@
     "grad_norm": 5.0,
     "patience": 10,
     "validation_metric": "+em",
-    "cuda_device": 1,
+    "cuda_device": 0,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
