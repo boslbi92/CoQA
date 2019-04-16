@@ -49,7 +49,7 @@
     "phrase_layer": {
       "type": "lstm",
       "bidirectional": true,
-      "input_size": 200,
+      "input_size": 400,
       "hidden_size": 100,
       "num_layers": 1,
       "dropout": 0.2
